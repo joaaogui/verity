@@ -3,6 +3,7 @@
 import { CheckCircle, XCircle, AlertTriangle, Target, Clock } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { ValidateResult } from "@/lib/api-client";
 
 interface ResultCardProps {
@@ -44,14 +45,28 @@ export function ResultCard({ result }: ResultCardProps) {
             <Badge variant="secondary">{result.categoryLabel}</Badge>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1" title="Confidence">
-              <Target className="size-3" />
-              {Math.round(result.confidence * 100)}%
-            </span>
-            <span className="flex items-center gap-1 tabular-nums" title="Processing time">
-              <Clock className="size-3" />
-              {(result.processingTimeMs / 1000).toFixed(1)}s
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1">
+                  <Target className="size-3" />
+                  {Math.round(result.confidence * 100)}%
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Confidence score for the document classification</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 tabular-nums">
+                  <Clock className="size-3" />
+                  {(result.processingTimeMs / 1000).toFixed(1)}s
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Total processing time including upload and AI analysis</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </CardHeader>
