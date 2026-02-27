@@ -88,13 +88,13 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 transition-colors ${
+        className={`relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-6 transition-colors ${
           dragOver
             ? "border-primary bg-primary/5"
             : "border-border bg-muted/30 hover:border-muted-foreground/50"
         } ${disabled ? "pointer-events-none opacity-50" : ""}`}
       >
-        <Upload className="mb-3 size-8 text-muted-foreground" />
+        <Upload className="mb-2 size-6 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           Drop file here or{" "}
           <span className="font-medium text-primary">click to upload</span>

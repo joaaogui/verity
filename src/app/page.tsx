@@ -46,21 +46,21 @@ export default function Home() {
   const hasResults = mutation.data || mutation.isPending || mutation.error;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12">
-      <div className="mb-10">
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-3xl tracking-tight text-foreground">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl tracking-tight text-foreground">
             Verity
           </h1>
-          <ThemeToggle />
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            AI-powered document validation
+          </p>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          AI-powered document validation. Describe what you expect, upload, verify.
-        </p>
+        <ThemeToggle />
       </div>
 
-      <div className={`gap-8 ${hasResults ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""}`}>
-        <div className="space-y-4">
+      <div className={`gap-6 ${hasResults ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""}`}>
+        <div className="space-y-3">
           <ExpectationInput
             value={expectation}
             onChange={setExpectation}
@@ -91,12 +91,10 @@ export default function Home() {
 
           {hasNoResults && history.length === 0 && <EmptyState />}
 
-          <div className={history.length > 0 ? "mt-4" : ""}>
-            <HistoryList entries={history} />
-          </div>
+          <HistoryList entries={history} />
         </div>
 
-        <div className="mt-6 xl:mt-0">
+        <div className="mt-4 xl:mt-0">
           {mutation.error && (
             <div className="animate-in fade-in-0 duration-200">
               <Alert variant="destructive">
