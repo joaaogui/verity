@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UploadZone } from "@/components/upload-zone";
@@ -87,19 +88,22 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
       <div className="mb-10 flex items-center justify-between">
         <div>
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-display), sans-serif" }}>
-              Verity
-            </h1>
-            <span className="text-[10px] font-medium text-muted-foreground/50">
-              {process.env.NEXT_PUBLIC_APP_VERSION}
-            </span>
-          </div>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-display), sans-serif" }}>
+            Verity
+          </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
             AI-powered document validation
           </p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/docs"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Docs
+          </Link>
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className={`gap-6 ${hasResults ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""}`}>
