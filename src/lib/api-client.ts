@@ -42,6 +42,40 @@ function toStreamEvent(eventType: string, data: unknown): StreamEvent | null {
   return { type, data } as StreamEvent;
 }
 
+function parseBlockToEvent(block: string): StreamEvent | null {
+  if (!block.trim()) return null;
+
+  const parsed = parseSseBlock(block);
+  if (!parsed) return null;
+
+  try {
+    const data = JSON.parse(parsed.eventData);
+    return toStreamEvent(parsed.eventType, data);
+  } catch {
+    return null;
+  }
+}
+
+async function* readSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() ?? "";
+
+    for (const block of chunks) {
+      const event = parseBlockToEvent(block);
+      if (event) yield event;
+    }
+  }
+}
+
 export async function* validateDocumentStream(
   file: File,
   expectation: string
@@ -59,33 +93,7 @@ export async function* validateDocumentStream(
     throw new Error("No response body");
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const chunks = buffer.split("\n\n");
-    buffer = chunks.pop() ?? "";
-
-    for (const block of chunks) {
-      if (!block.trim()) continue;
-
-      const parsed = parseSseBlock(block);
-      if (!parsed) continue;
-
-      try {
-        const data = JSON.parse(parsed.eventData);
-        const event = toStreamEvent(parsed.eventType, data);
-        if (event) yield event;
-      } catch {
-        // skip malformed events
-      }
-    }
-  }
+  yield* readSseStream(response.body);
 }
 
 export type ApiError = {
