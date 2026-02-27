@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 
 function Pre({ children, ...props }: Readonly<ComponentPropsWithoutRef<"pre">>) {
   return (
-    <pre className="overflow-x-auto rounded-lg border border-border bg-foreground/5 p-4 text-xs leading-relaxed text-foreground" {...props}>
+    <pre className="overflow-x-auto rounded-lg border border-border bg-foreground/5 p-4 text-xs leading-relaxed text-foreground font-mono" style={{ fontFamily: "'Courier New', Courier, monospace" }} {...props}>
       {children}
     </pre>
   );
