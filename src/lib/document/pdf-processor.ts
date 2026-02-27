@@ -1,4 +1,5 @@
-import pdfParse from "pdf-parse";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse");
 import { MAX_PAGES } from "../schemas";
 
 export interface ProcessedDocument {
