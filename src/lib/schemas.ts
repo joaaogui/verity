@@ -17,7 +17,7 @@ export const extractResponseSchema = z.object({
 
 export type ExtractResponse = z.infer<typeof extractResponseSchema>;
 
-export const validatorResponseSchema = classifyResponseSchema.merge(extractResponseSchema);
+export const validatorResponseSchema = classifyResponseSchema.extend(extractResponseSchema.shape);
 
 export type ValidatorResponse = z.infer<typeof validatorResponseSchema>;
 
