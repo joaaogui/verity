@@ -7,7 +7,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UploadZone } from "@/components/upload-zone";
 import { ExpectationInput } from "@/components/expectation-input";
 import { ResultCard } from "@/components/result-card";
+import { ResultSkeleton } from "@/components/result-skeleton";
+import { EmptyState } from "@/components/empty-state";
 import { HistoryList, type HistoryEntry } from "@/components/history-list";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useValidate } from "@/hooks/use-validate";
 
 export default function Home() {
@@ -39,17 +42,21 @@ export default function Home() {
   }, [file, expectation, mutation]);
 
   const canSubmit = file && expectation.trim() && !mutation.isPending;
+  const hasNoResults = !mutation.data && !mutation.isPending && !mutation.error;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">
-      <div className="mb-10 text-center">
-        <div className="mb-4 flex items-center justify-center gap-3">
-          <FileSearch className="size-8 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            DocValidator
-          </h1>
+      <div className="mb-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FileSearch className="size-7 text-primary" />
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              DocValidator
+            </h1>
+          </div>
+          <ThemeToggle />
         </div>
-        <p className="text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground">
           Upload a document, describe what you expect, get instant verification.
         </p>
       </div>
@@ -85,17 +92,27 @@ export default function Home() {
       </div>
 
       {mutation.error && (
-        <Alert variant="destructive" className="mt-6">
-          <AlertCircle className="size-4" />
-          <AlertDescription>{mutation.error.message}</AlertDescription>
-        </Alert>
+        <div className="mt-6 animate-in fade-in-0 duration-200">
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertDescription>{mutation.error.message}</AlertDescription>
+          </Alert>
+        </div>
       )}
 
-      {mutation.data && (
+      {mutation.isPending && (
+        <div className="mt-6">
+          <ResultSkeleton />
+        </div>
+      )}
+
+      {mutation.data && !mutation.isPending && (
         <div className="mt-6">
           <ResultCard result={mutation.data} />
         </div>
       )}
+
+      {hasNoResults && history.length === 0 && <EmptyState />}
 
       <div className="mt-8">
         <HistoryList entries={history} />

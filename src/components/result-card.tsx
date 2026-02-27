@@ -15,36 +15,37 @@ export function ResultCard({ result }: ResultCardProps) {
   const isLowConfidence = result.confidence < 0.7;
 
   let Icon = CheckCircle;
-  let iconColor = "text-emerald-600";
+  let iconColor = "text-success";
   let statusText = "Match";
-  let statusClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+  let statusClass = "bg-success/10 text-success border-success/30";
+  let whyBorder = "border-l-success";
 
   if (!isMatch) {
     Icon = XCircle;
     iconColor = "text-destructive";
     statusText = "No Match";
-    statusClass = "bg-red-50 text-red-700 border-red-200";
+    statusClass = "bg-destructive/10 text-destructive border-destructive/30";
+    whyBorder = "border-l-destructive";
   } else if (isLowConfidence) {
     Icon = AlertTriangle;
-    iconColor = "text-amber-600";
+    iconColor = "text-warning";
     statusText = "Uncertain Match";
-    statusClass = "bg-amber-50 text-amber-700 border-amber-200";
+    statusClass = "bg-warning/10 text-warning border-warning/30";
+    whyBorder = "border-l-warning";
   }
 
   const fieldEntries = Object.entries(result.extractedFields);
 
   return (
-    <Card>
+    <Card className="animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Icon className={`size-5 ${iconColor}`} />
-            <Badge variant="outline" className={statusClass}>
-              {statusText}
-            </Badge>
-            <Badge variant="secondary">{result.categoryLabel}</Badge>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <Icon className={`size-5 ${iconColor}`} />
+          <Badge variant="outline" className={statusClass}>
+            {statusText}
+          </Badge>
+          <Badge variant="secondary">{result.categoryLabel}</Badge>
+          <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1">
@@ -72,7 +73,7 @@ export function ResultCard({ result }: ResultCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <div>
+        <div className={`border-l-2 ${whyBorder} pl-3`}>
           <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
             Why
           </h4>
@@ -81,7 +82,7 @@ export function ResultCard({ result }: ResultCardProps) {
           </p>
         </div>
 
-        <div>
+        <div className="rounded-md bg-muted/50 px-3 py-3">
           <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
             Summary
           </h4>
@@ -114,7 +115,7 @@ export function ResultCard({ result }: ResultCardProps) {
         )}
 
         {result.truncated && (
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-warning">
             Note: Only the first 3 pages were analyzed.
           </p>
         )}

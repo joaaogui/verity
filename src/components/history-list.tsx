@@ -1,7 +1,9 @@
 "use client";
 
-import { CheckCircle, XCircle } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle, XCircle, ChevronDown } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ResultCard } from "@/components/result-card";
 import type { ValidateResult } from "@/lib/api-client";
 
 export interface HistoryEntry {
@@ -16,6 +18,8 @@ interface HistoryListProps {
 }
 
 export function HistoryList({ entries }: HistoryListProps) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   if (entries.length === 0) return null;
 
   return (
@@ -27,24 +31,39 @@ export function HistoryList({ entries }: HistoryListProps) {
       </CardHeader>
       <CardContent className="space-y-1.5">
         {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2"
-          >
-            {entry.result.matchesExpectation ? (
-              <CheckCircle className="size-4 shrink-0 text-emerald-600" />
-            ) : (
-              <XCircle className="size-4 shrink-0 text-destructive" />
+          <div key={entry.id}>
+            <button
+              type="button"
+              onClick={() =>
+                setExpandedId(expandedId === entry.id ? null : entry.id)
+              }
+              className="flex w-full items-center gap-3 rounded-md bg-muted/50 px-3 py-2 text-left transition-colors hover:bg-muted"
+            >
+              {entry.result.matchesExpectation ? (
+                <CheckCircle className="size-4 shrink-0 text-success" />
+              ) : (
+                <XCircle className="size-4 shrink-0 text-destructive" />
+              )}
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                {entry.fileName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {entry.result.categoryLabel}
+              </span>
+              <span className="text-xs tabular-nums text-muted-foreground/60">
+                {(entry.result.processingTimeMs / 1000).toFixed(1)}s
+              </span>
+              <ChevronDown
+                className={`size-4 text-muted-foreground transition-transform ${
+                  expandedId === entry.id ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {expandedId === entry.id && (
+              <div className="mt-2 mb-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                <ResultCard result={entry.result} />
+              </div>
             )}
-            <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-              {entry.fileName}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {entry.result.categoryLabel}
-            </span>
-            <span className="text-xs tabular-nums text-muted-foreground/60">
-              {(entry.result.processingTimeMs / 1000).toFixed(1)}s
-            </span>
           </div>
         ))}
       </CardContent>
