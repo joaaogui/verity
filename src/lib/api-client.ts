@@ -23,8 +23,14 @@ export async function validateDocument(
   });
 
   if (!response.ok) {
-    const body: ApiError = await response.json();
-    throw new Error(body.error || "Validation failed");
+    let message = `Validation failed (${response.status})`;
+    try {
+      const body: ApiError = await response.json();
+      if (body.error) message = body.error;
+    } catch {
+      // non-JSON error response
+    }
+    throw new Error(message);
   }
 
   return response.json();

@@ -104,6 +104,7 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
         </p>
         <input
           type="file"
+          aria-label="Upload a document for validation"
           accept={ACCEPTED_FILE_TYPES.join(",")}
           onChange={handleChange}
           disabled={disabled}

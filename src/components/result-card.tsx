@@ -40,7 +40,7 @@ export function ResultCard({ result }: ResultCardProps) {
     <Card className="animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <Icon className={`size-5 ${iconColor}`} />
+          <Icon className={`size-5 ${iconColor}`} aria-label={statusText} />
           <Badge variant="outline" className={statusClass}>
             {statusText}
           </Badge>

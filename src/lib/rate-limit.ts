@@ -38,10 +38,8 @@ export function checkRateLimit(
   cleanup(windowMs);
 
   const timestamps = (windows.get(key) ?? []).filter((t) => t > cutoff);
-  timestamps.push(now);
-  windows.set(key, timestamps);
 
-  if (timestamps.length > maxRequests) {
+  if (timestamps.length >= maxRequests) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later.", code: "rate_limit" },
       {
@@ -50,6 +48,9 @@ export function checkRateLimit(
       }
     );
   }
+
+  timestamps.push(now);
+  windows.set(key, timestamps);
 
   return null;
 }

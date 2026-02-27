@@ -31,17 +31,18 @@ export default function Home() {
   const [expectation, setExpectation] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [isMac, setIsMac] = useState(false);
   const submitRef = useRef<() => void>(null);
 
   useEffect(() => {
     setHistory(loadHistory());
     setHydrated(true);
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.userAgent));
   }, []);
 
   useEffect(() => {
-    if (hydrated && history.length > 0) {
-      sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    }
+    if (!hydrated) return;
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   }, [history, hydrated]);
 
   const mutation = useValidate();
@@ -65,7 +66,7 @@ export default function Home() {
         },
       }
     );
-  }, [file, expectation, mutation]);
+  }, [file, expectation, mutation.mutate]);
 
   submitRef.current = handleSubmit;
 
@@ -137,7 +138,7 @@ export default function Home() {
               )}
             </Button>
             <p className="mt-1 text-center text-[10px] text-muted-foreground/40">
-              {navigator?.platform?.includes("Mac") ? "Cmd" : "Ctrl"}+Enter
+              {isMac ? "Cmd" : "Ctrl"}+Enter
             </p>
           </div>
 

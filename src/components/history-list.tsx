@@ -34,6 +34,7 @@ export function HistoryList({ entries }: HistoryListProps) {
           <div key={entry.id}>
             <button
               type="button"
+              aria-expanded={expandedId === entry.id}
               onClick={() =>
                 setExpandedId(expandedId === entry.id ? null : entry.id)
               }
