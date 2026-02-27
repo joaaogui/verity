@@ -7,6 +7,9 @@ import { GEMINI_MODEL, getGeminiClient } from "./constants";
 const MAX_ATTEMPTS = 2;
 
 function cleanAndParse(text: string): unknown {
+  if (!text || text.trim().length === 0) {
+    throw new Error("Empty response from LLM");
+  }
   const cleaned = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
   let parsed = JSON.parse(cleaned);
   if (Array.isArray(parsed)) parsed = parsed[0];

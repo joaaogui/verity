@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         } catch (e) {
           console.error("Field extraction failed:", e);
           controller.enqueue(
-            encoder.encode(sseEvent("complete", { extractedFields: {}, summary: "Field extraction failed.", processingTimeMs: Date.now() - startTime }))
+            encoder.encode(sseEvent("complete", { extractedFields: {}, summary: "Field extraction was not available for this document. The classification above is still valid.", processingTimeMs: Date.now() - startTime }))
           );
         }
       } catch (e) {
