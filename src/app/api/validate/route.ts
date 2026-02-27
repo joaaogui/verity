@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       parts = [{ buffer: fileBuffer, mimeType: "application/pdf" }];
     } else {
       const resized = await resizeImageForLLM(fileBuffer);
-      parts = [{ buffer: resized, mimeType: "image/png" }];
+      parts = [{ buffer: resized, mimeType: "image/jpeg" }];
     }
 
     const provider = getLLMProvider();

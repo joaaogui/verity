@@ -35,11 +35,23 @@ export class GeminiProvider implements LLMProvider {
       ],
       config: {
         responseMimeType: "application/json",
+        temperature: 0,
+        maxOutputTokens: 1024,
       },
     });
 
     const text = response.text ?? "";
-    const parsed = JSON.parse(text);
+    let parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) parsed = parsed[0];
+
+    if (parsed.extractedFields && typeof parsed.extractedFields === "object") {
+      const flat: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed.extractedFields)) {
+        flat[k] = typeof v === "string" ? v : JSON.stringify(v);
+      }
+      parsed.extractedFields = flat;
+    }
+
     return validatorResponseSchema.parse(parsed);
   }
 }

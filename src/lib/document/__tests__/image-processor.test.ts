@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { resizeImageForLLM } from "../image-processor";
 
 describe("resizeImageForLLM", () => {
-  it("resizes a large image to max 1024px width", async () => {
+  it("resizes a large image to max 768px width as JPEG", async () => {
     const largeImage = await sharp({
       create: { width: 2048, height: 3000, channels: 3, background: "white" },
     })
@@ -13,8 +13,8 @@ describe("resizeImageForLLM", () => {
     const result = await resizeImageForLLM(largeImage);
     const metadata = await sharp(result).metadata();
 
-    expect(metadata.width).toBeLessThanOrEqual(1024);
-    expect(metadata.format).toBe("png");
+    expect(metadata.width).toBeLessThanOrEqual(768);
+    expect(metadata.format).toBe("jpeg");
   });
 
   it("does not upscale a small image", async () => {
