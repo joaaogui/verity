@@ -48,11 +48,12 @@ Single Next.js 16 (App Router) project handling both UI and backend logic, deplo
 
 ### Single-pass vision LLM vs OCR pipeline
 
-**Chose: Single-pass.** Send the document directly to Gemini in one API call. The LLM handles classification, field extraction, summarization, and expectation matching simultaneously.
+**Chose: Two-stage streaming.** Split into a fast classification call (~3s) and a background field extraction call (~4s more), streamed via SSE.
 
-- *Why*: One call = lowest latency, simplest architecture, fewest failure modes. Gemini handles PDFs natively — no conversion step.
-- *Alternative considered*: OCR-first pipeline (Tesseract/Google Vision -> text -> LLM). Would add a second processing step (~500ms), lose visual layout context (logos, headers, formatting), and require maintaining an OCR dependency.
-- *Tradeoff*: Dependent on LLM vision quality. Some complex PDFs cause parse failures (mitigated by automatic retry).
+- *Why*: The user's primary question — "does this document match?" — is answered in ~3 seconds. Field extraction (the slow part with many output tokens) runs in the background. Gemini handles PDFs natively — no conversion step.
+- *Evolution*: v1.0 used a single-pass call (4-6s for everything). v1.3 split it into two stages to improve perceived latency.
+- *Alternative considered*: OCR-first pipeline (Tesseract/Google Vision -> text -> LLM). Would add complexity and lose visual layout context.
+- *Tradeoff*: Two LLM calls per validation = more total tokens than single-pass. But the UX gain (3s to verdict vs 5s) is worth it.
 
 ### Gemini Flash vs OpenAI GPT-4o vs Anthropic Claude
 
@@ -83,44 +84,79 @@ Single Next.js 16 (App Router) project handling both UI and backend logic, deplo
 - *Why*: API routes run server-side (Gemini key stays safe), no CORS issues, shared TypeScript types between client and server. Vercel deploys it as a single unit.
 - *Tradeoff*: Can't scale frontend and backend independently. Acceptable for a tool app with low concurrent users.
 
-## Approach: Single-Pass Vision LLM
+## Approach: Two-Stage Streaming Validation
 
-Send the document directly to Gemini 2.0 Flash in one API call with a structured prompt. PDFs are sent as `application/pdf` (Gemini handles natively). Images are resized to 768px width JPEG before sending (fewer tokens = faster). PDFs over 3 pages are truncated to the first 3 pages using `pdf-lib` before sending.
+The validation is split into two sequential LLM calls, streamed to the frontend via Server-Sent Events (SSE):
 
-The prompt enforces **strict expectation matching** with explicit rules:
+**Stage 1 — Classify (~3s):** A minimal prompt asks only for category, confidence, match verdict, and explanation. No field extraction, no summary. Short output = faster inference. The result streams to the frontend immediately.
+
+**Stage 2 — Extract (~4s more):** A second prompt asks for all extracted fields and a summary. Runs on the same document. Fields fade into the UI progressively while the user already has the verdict.
+
+```
+User clicks "Validate"
+    │
+    ▼ ~3s
+┌─────────────────────────────────┐
+│ VERDICT: Match/No Match (shown) │  ← User sees the answer here
+│ Category, Confidence, Why       │
+│ [Extracting fields... skeleton] │
+└─────────────────────────────────┘
+    │
+    ▼ ~4s more
+┌─────────────────────────────────┐
+│ VERDICT (already shown)         │
+│ Summary (fades in)              │
+│ Extracted Fields (fades in)     │  ← Fields populate progressively
+└─────────────────────────────────┘
+```
+
+PDFs are sent as `application/pdf` (Gemini handles natively). Images are resized to 768px width JPEG. PDFs over 3 pages are truncated to the first 3 pages using `pdf-lib`.
+
+The prompts enforce **strict expectation matching**:
 1. Match the document type literally (electricity bill != water bill)
 2. Distinguish blank/template forms from completed/filled forms
 3. Verify specific issuers, date ranges, and named individuals
 4. Treat user input as untrusted (prompt injection defense)
 
-**Generation config:** `temperature: 0`, `maxOutputTokens: 1024`, `responseMimeType: "application/json"` for fast, deterministic structured output.
+**Generation config:** `temperature: 0`, `responseMimeType: "application/json"`. Classification uses `maxOutputTokens: 256` (fast). Extraction uses `maxOutputTokens: 1024`.
 
-**Retry:** On JSON parse failure or Zod validation error, the provider retries once automatically. Control characters are stripped before parsing.
+**Retry:** Each stage retries once on parse failure. Control characters are stripped before parsing.
+
+**Backward compatibility:** A single-pass `validateDocument` method is preserved for the test suite (server actions don't use SSE).
 
 ## API Endpoints
 
 ### `POST /api/validate`
 
-Main validation endpoint. Accepts multipart form data. Rate limited to 10 requests/minute/IP.
+Main validation endpoint. Returns a **Server-Sent Events stream** with two events. Rate limited to 10 requests/minute/IP.
 
-**Request:** `file` (binary, max 5MB) + `expectation` (string, sanitized to 500 chars)
+**Request:** `file` (binary, max 5MB) + `expectation` (string, sanitized to 500 chars) as `multipart/form-data`
 
-**Response:**
+**Response:** `Content-Type: text/event-stream`
+
+**Event 1 — `verdict` (~3s):**
 ```typescript
-type ValidatorResponse = {
-  category: string;            // e.g. "utility_bill"
-  categoryLabel: string;       // e.g. "Utility Bill"
-  confidence: number;          // 0.0 - 1.0
+{
+  category: string;
+  categoryLabel: string;
+  confidence: number;
   matchesExpectation: boolean;
   matchExplanation: string;
-  extractedFields: Record<string, string>;
-  summary: string;
   processingTimeMs: number;
   truncated: boolean;
 }
 ```
 
-**Error response:** `{ error: string, code: "validation_error" | "parse_error" | "provider_error" | "rate_limit" | "unknown" }`
+**Event 2 — `complete` (~7-8s total):**
+```typescript
+{
+  extractedFields: Record<string, string>;
+  summary: string;
+  processingTimeMs: number;
+}
+```
+
+**Error event:** `{ error: string, code: "validation_error" | "parse_error" | "provider_error" | "rate_limit" | "unknown" }`
 
 ### `GET /api/suggest?q=<partial_text>`
 
@@ -154,18 +190,17 @@ Current implementation: `GeminiProvider` with automatic retry. The adapter inter
 
 ## Latency Analysis
 
-### Where the time goes
+### Where the time goes (two-stage)
 
-| Step | Time | % of total |
+| Step | Time | User sees |
 |------|------|-----------|
-| File upload (client -> Vercel) | ~100ms | 2% |
-| PDF truncation via pdf-lib | ~20ms | <1% |
-| Image resize via sharp | ~50ms | 1% |
-| **Gemini API call (network + inference)** | **3-6s** | **95%** |
-| JSON parse + Zod validation | ~5ms | <1% |
-| **Typical total** | **4-6s** | |
+| File upload + processing | ~150ms | Spinner |
+| **Stage 1: Classify (Gemini)** | **2-3.5s** | **Verdict appears** |
+| Stage 2: Extract fields (Gemini) | 3-5s more | Fields fade in |
+| **Time to verdict** | **~3s** | |
+| **Total time** | **7-8s** | |
 
-The Gemini API call dominates. Everything else is negligible.
+The user gets the answer (match/no match) in ~3 seconds. Field extraction runs in the background and populates progressively.
 
 ### Why Gemini Flash takes 3-6 seconds
 
@@ -211,27 +246,29 @@ The 4-6s latency is a fair tradeoff for zero cost, native PDF support, and full 
 
 Tested against 10 real-world PDF documents with specific expectations designed to test both correct matches and strict rejections.
 
-| # | Document | Type | Expectation | Expected | Result | Time | Pass? |
-|---|----------|------|-------------|----------|--------|------|-------|
-| 1 | W-2 blank (IRS) | Tax form | "A blank IRS W-2 form" | Match | Match (0.95) | 6.6s | Yes |
-| 2 | W-2 filled (Pitt) | Tax form | "A recent monthly pay stub" | No Match | No Match | 5.2s | Yes |
-| 3 | Invoice (Sliced) | Invoice | "A commercial invoice with line items" | Match | Match (0.98) | 3.8s | Yes |
-| 4 | Utility bill (CRWWD) | Utility | "A utility bill showing account number" | Match | Match (0.95) | 5.1s | Yes |
-| 5 | Utility bill (Wheaton) | Utility | "An electricity bill from ConEd" | No Match | No Match (0.95) | 4.8s | Yes |
-| 6 | 1040 instructions (IRS) | Tax form | "A completed Form 1040 for 2025" | No Match | No Match (0.95) | 8.4s | Yes |
-| 7 | Passport (Malaysia) | ID | "A passport scan with photo" | Match | Match (0.92) | 4.5s | Yes |
-| 8 | Passport (Ultracamp) | ID | "A US driver's license" | No Match | No Match (0.95) | 3.2s | Yes |
-| 9 | 1099 form (IRS) | Tax form | "An IRS Form 1099" | Match | Match (0.95) | 5.7s | Yes |
-| 10 | W-4 form (IRS) | Tax form | "A completed W-2 wage statement" | No Match | No Match (0.95) | 6.5s | Yes |
+| # | Document | Expectation | Expected | Result | Verdict | Total |
+|---|----------|-------------|----------|--------|---------|-------|
+| 1 | W-2 blank (IRS) | "A blank IRS W-2 form" | Match | Match (0.95) | 3.2s | 7.4s |
+| 2 | W-2 filled (Pitt) | "A recent monthly pay stub" | No Match | No Match | 3.1s | 7.0s |
+| 3 | Invoice (Sliced) | "A commercial invoice" | Match | Match (0.95) | 3.3s | 7.7s |
+| 4 | Utility bill (CRWWD) | "A utility bill with account number" | Match | Match (0.95) | 3.0s | 7.2s |
+| 5 | Utility bill (Wheaton) | "An electricity bill from ConEd" | No Match | No Match (0.95) | 3.2s | 7.6s |
+| 6 | 1040 instructions (IRS) | "A completed Form 1040" | No Match | No Match (0.95) | 3.5s | 8.4s |
+| 7 | Passport (Malaysia) | "A passport scan with photo" | Match | Match (0.92) | 3.0s | 7.1s |
+| 8 | Passport (Ultracamp) | "A US driver's license" | No Match | No Match (0.95) | 3.4s | 7.6s |
+| 9 | 1099 form (IRS) | "An IRS Form 1099" | Match | Match (0.95) | 3.3s | 7.8s |
+| 10 | W-4 form (IRS) | "A completed W-2" | No Match | No Match (0.95) | 3.6s | 8.4s |
 
-**Pass rate: 10/10** (after v1.2 retry mechanism and prompt improvements)
+**Pass rate: 10/10** (after retry mechanism and prompt improvements)
 
-**Average processing time: 5.4s** (range: 3.2s - 8.4s)
+**Average time to verdict: 3.3s** (user sees Match/No Match here)
+
+**Average total time: 7.6s** (fields fully populated)
 
 Key observations:
-- Strict matching works correctly: wastewater bill rejected when electricity expected (#5), Canadian passport rejected when US driver's license expected (#8), W-4 rejected when W-2 expected (#10)
-- Blank/template form distinction works: 1040 instructions rejected when completed return expected (#6)
-- Larger PDFs take longer due to more content for the LLM to process (#6 at 8.4s was a 100+ page PDF truncated to 3 pages)
+- Two-stage architecture delivers the verdict in ~3s consistently across all document types
+- Strict matching works correctly across all test cases
+- Total time is higher than single-pass (~7.6s vs ~5.4s) but the UX is better because the user gets the answer in half the time
 
 ## UI Design
 
