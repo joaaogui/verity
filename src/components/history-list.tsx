@@ -64,11 +64,11 @@ function HistoryRow({
   entry,
   isExpanded,
   onToggle,
-}: {
+}: Readonly<{
   entry: HistoryEntry;
   isExpanded: boolean;
   onToggle: () => void;
-}) {
+}>) {
   return (
     <div>
       <button

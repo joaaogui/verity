@@ -12,7 +12,7 @@ interface ResultCardProps {
   isExtractingFields?: boolean;
 }
 
-function Bone({ className }: { className?: string }) {
+function Bone({ className }: Readonly<{ className?: string }>) {
   return <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />;
 }
 
@@ -102,7 +102,7 @@ export function ResultCard({ verdict, fields, isExtractingFields }: Readonly<Res
   );
 }
 
-function SummarySection({ summary, isLoading }: { summary?: string; isLoading?: boolean }) {
+function SummarySection({ summary, isLoading }: Readonly<{ summary?: string; isLoading?: boolean }>) {
   if (summary) {
     return (
       <div className="rounded-md bg-muted/50 px-3 py-3 animate-in fade-in-0 duration-300">
@@ -125,7 +125,7 @@ function SummarySection({ summary, isLoading }: { summary?: string; isLoading?: 
   return null;
 }
 
-function FieldsSection({ entries, isLoading }: { entries: [string, string][]; isLoading?: boolean }) {
+function FieldsSection({ entries, isLoading }: Readonly<{ entries: [string, string][]; isLoading?: boolean }>) {
   if (entries.length > 0) {
     return (
       <div className="animate-in fade-in-0 duration-300">
@@ -153,8 +153,8 @@ function FieldsSection({ entries, isLoading }: { entries: [string, string][]; is
           <span className="text-xs text-muted-foreground">Extracting fields...</span>
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-1">
+          {["field1", "field2", "field3", "field4"].map((fieldId) => (
+            <div key={fieldId} className="space-y-1">
               <Bone className="h-3 w-16" />
               <Bone className="h-4 w-full" />
             </div>
