@@ -1,22 +1,16 @@
-import { GoogleGenAI } from "@google/genai";
 import type { DocumentPart, LLMProvider } from "./types";
 import type { ValidatorResponse } from "../schemas";
 import { validatorResponseSchema } from "../schemas";
 import { buildPrompt } from "./prompt";
+import { GEMINI_MODEL, getGeminiClient } from "./constants";
 
 export class GeminiProvider implements LLMProvider {
-  private client: GoogleGenAI;
-  private model = "gemini-2.0-flash";
-
-  constructor(apiKey: string) {
-    this.client = new GoogleGenAI({ apiKey });
-  }
-
   async validateDocument(
     parts: DocumentPart[],
     expectation: string
   ): Promise<ValidatorResponse> {
     const prompt = buildPrompt(expectation);
+    const client = getGeminiClient();
 
     const dataParts = parts.map((part) => ({
       inlineData: {
@@ -25,8 +19,8 @@ export class GeminiProvider implements LLMProvider {
       },
     }));
 
-    const response = await this.client.models.generateContent({
-      model: this.model,
+    const response = await client.models.generateContent({
+      model: GEMINI_MODEL,
       contents: [
         {
           role: "user",

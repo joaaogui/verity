@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,10 +13,35 @@ import { HistoryList, type HistoryEntry } from "@/components/history-list";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useValidate } from "@/hooks/use-validate";
 
+const HISTORY_KEY = "verity-history";
+
+function loadHistory(): HistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [expectation, setExpectation] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const submitRef = useRef<() => void>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && history.length > 0) {
+      sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+  }, [history, hydrated]);
 
   const mutation = useValidate();
 
@@ -40,6 +65,19 @@ export default function Home() {
       }
     );
   }, [file, expectation, mutation]);
+
+  submitRef.current = handleSubmit;
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        submitRef.current?.();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const canSubmit = file && expectation.trim() && !mutation.isPending;
   const hasNoResults = !mutation.data && !mutation.isPending && !mutation.error;
@@ -78,21 +116,26 @@ export default function Home() {
             disabled={mutation.isPending}
           />
 
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-          >
-            {mutation.isPending ? (
-              <>
-                <Loader2 className="size-5 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              "Validate Document"
-            )}
-          </Button>
+          <div>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="size-5 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                "Validate Document"
+              )}
+            </Button>
+            <p className="mt-1 text-center text-[10px] text-muted-foreground/40">
+              {navigator?.platform?.includes("Mac") ? "Cmd" : "Ctrl"}+Enter
+            </p>
+          </div>
 
           {hasNoResults && history.length === 0 && <EmptyState />}
 

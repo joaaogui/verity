@@ -3,7 +3,7 @@ import { execSync } from "child_process";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  serverExternalPackages: ["pdf-parse", "sharp"],
+  serverExternalPackages: ["sharp"],
   env: {
     NEXT_PUBLIC_APP_VERSION: (() => {
       try {
