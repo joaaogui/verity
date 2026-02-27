@@ -5,8 +5,8 @@ Return a single JSON object (not an array) with these keys:
 - category: snake_case string (e.g. "utility_bill", "invoice", "bank_statement")
 - categoryLabel: human-readable string
 - confidence: number 0.0–1.0
-- matchesExpectation: boolean
-- matchExplanation: brief string
+- matchesExpectation: boolean — BE STRICT. Match the user's expectation literally, not loosely. If they say "electricity bill" and this is a water bill, that is NOT a match even though both are utilities. Every specific detail in the expectation must be satisfied.
+- matchExplanation: brief string explaining exactly which parts match or don't match
 - extractedFields: flat object of string keys to string values, e.g. {"invoice_number": "INV-123", "date": "2024-01-15", "total": "$93.50"}. Do NOT nest objects inside extractedFields.
 - summary: 1-2 sentence string
 
