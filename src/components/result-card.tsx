@@ -1,18 +1,24 @@
 "use client";
 
-import { CheckCircle, XCircle, AlertTriangle, Target, Clock } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Target, Clock, Loader2 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import type { ValidateResult } from "@/lib/api-client";
+import type { VerdictResult, FieldsResult } from "@/lib/api-client";
 
 interface ResultCardProps {
-  result: ValidateResult;
+  verdict: VerdictResult;
+  fields?: FieldsResult | null;
+  isExtractingFields?: boolean;
 }
 
-export function ResultCard({ result }: ResultCardProps) {
-  const isMatch = result.matchesExpectation;
-  const isLowConfidence = result.confidence < 0.7;
+function Bone({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />;
+}
+
+export function ResultCard({ verdict, fields, isExtractingFields }: ResultCardProps) {
+  const isMatch = verdict.matchesExpectation;
+  const isLowConfidence = verdict.confidence < 0.7;
 
   let Icon = CheckCircle;
   let iconColor = "text-success";
@@ -34,7 +40,7 @@ export function ResultCard({ result }: ResultCardProps) {
     whyBorder = "border-l-warning";
   }
 
-  const fieldEntries = Object.entries(result.extractedFields);
+  const fieldEntries = fields ? Object.entries(fields.extractedFields) : [];
 
   return (
     <Card className="animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
@@ -44,13 +50,13 @@ export function ResultCard({ result }: ResultCardProps) {
           <Badge variant="outline" className={statusClass}>
             {statusText}
           </Badge>
-          <Badge variant="secondary">{result.categoryLabel}</Badge>
+          <Badge variant="secondary">{verdict.categoryLabel}</Badge>
           <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1">
                   <Target className="size-3" />
-                  {Math.round(result.confidence * 100)}%
+                  {Math.round(verdict.confidence * 100)}%
                 </span>
               </TooltipTrigger>
               <TooltipContent>
@@ -61,11 +67,11 @@ export function ResultCard({ result }: ResultCardProps) {
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1 tabular-nums">
                   <Clock className="size-3" />
-                  {(result.processingTimeMs / 1000).toFixed(1)}s
+                  {(verdict.processingTimeMs / 1000).toFixed(1)}s
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Total processing time including upload and AI analysis</p>
+                <p>Time to classify the document</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -78,21 +84,29 @@ export function ResultCard({ result }: ResultCardProps) {
             Why
           </h4>
           <p className="text-sm leading-relaxed text-foreground">
-            {result.matchExplanation}
+            {verdict.matchExplanation}
           </p>
         </div>
 
-        <div className="rounded-md bg-muted/50 px-3 py-3">
-          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
-            Summary
-          </h4>
-          <p className="text-sm leading-relaxed text-foreground/80">
-            {result.summary}
-          </p>
-        </div>
+        {fields?.summary ? (
+          <div className="rounded-md bg-muted/50 px-3 py-3 animate-in fade-in-0 duration-300">
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+              Summary
+            </h4>
+            <p className="text-sm leading-relaxed text-foreground/80">
+              {fields.summary}
+            </p>
+          </div>
+        ) : isExtractingFields ? (
+          <div className="space-y-2 rounded-md bg-muted/50 px-3 py-3">
+            <Bone className="h-3 w-16" />
+            <Bone className="h-4 w-full" />
+            <Bone className="h-4 w-3/4" />
+          </div>
+        ) : null}
 
-        {fieldEntries.length > 0 && (
-          <div>
+        {fieldEntries.length > 0 ? (
+          <div className="animate-in fade-in-0 duration-300">
             <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
               Extracted Fields
             </h4>
@@ -103,7 +117,7 @@ export function ResultCard({ result }: ResultCardProps) {
                   className="border-b border-border/40 py-2 last:border-0"
                 >
                   <span className="block text-[11px] capitalize text-foreground/40">
-                    {key.replace(/_/g, " ")}
+                    {key.replaceAll("_", " ")}
                   </span>
                   <span className="block text-sm text-foreground">
                     {value}
@@ -111,10 +125,30 @@ export function ResultCard({ result }: ResultCardProps) {
                 </div>
               ))}
             </div>
+            {fields && (
+              <p className="mt-2 text-right text-[10px] text-muted-foreground/40 tabular-nums">
+                Total: {(fields.processingTimeMs / 1000).toFixed(1)}s
+              </p>
+            )}
           </div>
-        )}
+        ) : isExtractingFields ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-3 animate-spin text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Extracting fields...</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-1">
+                  <Bone className="h-3 w-16" />
+                  <Bone className="h-4 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
-        {result.truncated && (
+        {verdict.truncated && (
           <p className="text-xs text-warning">
             Note: Only the first 3 pages were analyzed.
           </p>

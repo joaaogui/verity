@@ -4,12 +4,12 @@ import { useState } from "react";
 import { CheckCircle, XCircle, ChevronDown } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ResultCard } from "@/components/result-card";
-import type { ValidateResult } from "@/lib/api-client";
+import type { VerdictResult } from "@/lib/api-client";
 
 export interface HistoryEntry {
   id: string;
   fileName: string;
-  result: ValidateResult;
+  result: VerdictResult & { extractedFields?: Record<string, string>; summary?: string };
   timestamp: number;
 }
 
@@ -17,7 +17,7 @@ interface HistoryListProps {
   entries: HistoryEntry[];
 }
 
-export function HistoryList({ entries }: HistoryListProps) {
+export function HistoryList({ entries }: Readonly<HistoryListProps>) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (entries.length === 0) return null;
@@ -62,7 +62,14 @@ export function HistoryList({ entries }: HistoryListProps) {
             </button>
             {expandedId === entry.id && (
               <div className="mt-2 mb-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-                <ResultCard result={entry.result} />
+                <ResultCard
+                  verdict={entry.result}
+                  fields={entry.result.extractedFields && entry.result.summary ? {
+                    extractedFields: entry.result.extractedFields,
+                    summary: entry.result.summary,
+                    processingTimeMs: entry.result.processingTimeMs,
+                  } : null}
+                />
               </div>
             )}
           </div>

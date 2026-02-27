@@ -1,28 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+import Image from "next/image";
 import { FileText, Image as ImageIcon } from "lucide-react";
 
 interface FileThumbnailProps {
   file: File;
 }
 
-export function FileThumbnail({ file }: FileThumbnailProps) {
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
+export function FileThumbnail({ file }: Readonly<FileThumbnailProps>) {
   const isImage = file.type.startsWith("image/");
 
-  useEffect(() => {
-    if (!isImage) return;
-    const url = URL.createObjectURL(file);
-    setImgSrc(url);
-    return () => URL.revokeObjectURL(url);
+  const imgSrc = useMemo(() => {
+    if (!isImage) return null;
+    return URL.createObjectURL(file);
   }, [file, isImage]);
+
+  useEffect(() => {
+    return () => {
+      if (imgSrc) URL.revokeObjectURL(imgSrc);
+    };
+  }, [imgSrc]);
 
   if (isImage && imgSrc) {
     return (
-      <img
+      <Image
         src={imgSrc}
         alt="Preview"
+        width={48}
+        height={48}
+        unoptimized
         className="size-12 rounded-md border border-border object-cover"
       />
     );

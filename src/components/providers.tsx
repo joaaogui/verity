@@ -5,7 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState, type ReactNode } from "react";
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children }: Readonly<{ children: ReactNode }>) {
   const [queryClient] = useState(
     () =>
       new QueryClient({

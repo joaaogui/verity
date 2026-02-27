@@ -1,14 +1,23 @@
 import { z } from "zod";
 
-export const validatorResponseSchema = z.object({
+export const classifyResponseSchema = z.object({
   category: z.string().min(1),
   categoryLabel: z.string().min(1),
   confidence: z.number().min(0).max(1),
   matchesExpectation: z.boolean(),
   matchExplanation: z.string().min(1),
+});
+
+export type ClassifyResponse = z.infer<typeof classifyResponseSchema>;
+
+export const extractResponseSchema = z.object({
   extractedFields: z.record(z.string(), z.string()),
   summary: z.string().min(1),
 });
+
+export type ExtractResponse = z.infer<typeof extractResponseSchema>;
+
+export const validatorResponseSchema = classifyResponseSchema.merge(extractResponseSchema);
 
 export type ValidatorResponse = z.infer<typeof validatorResponseSchema>;
 

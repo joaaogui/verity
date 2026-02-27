@@ -37,19 +37,14 @@ export default function TestSuitePage() {
       const tc = TEST_CASES[i];
       const result = await runTestCase(tc.id, tc.file, tc.expectation);
 
-      const passed = result.error
-        ? false
-        : result.matchesExpectation === tc.expectedMatch;
+      const passed = !result.error && result.matchesExpectation === tc.expectedMatch;
+      let status: TestStatus = "failed";
+      if (result.error) status = "error";
+      else if (passed) status = "passed";
 
       setRows((prev) =>
         prev.map((r, idx) =>
-          idx === i
-            ? {
-                ...r,
-                status: result.error ? "error" : passed ? "passed" : "failed",
-                result,
-              }
-            : r
+          idx === i ? { ...r, status, result } : r
         )
       );
     }
@@ -133,7 +128,7 @@ export default function TestSuitePage() {
           <CardTitle className="text-sm text-muted-foreground">Test Cases</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
-          {rows.map((row, i) => (
+          {rows.map((row) => (
             <div
               key={row.testCase.id}
               className={`rounded-md px-3 py-2.5 transition-colors ${
@@ -191,7 +186,7 @@ export default function TestSuitePage() {
   );
 }
 
-function StatusIcon({ status }: { status: TestStatus }) {
+function StatusIcon({ status }: Readonly<{ status: TestStatus }>) {
   switch (status) {
     case "running":
       return <Loader2 className="size-4 shrink-0 animate-spin text-primary" />;

@@ -12,7 +12,7 @@ interface UploadZoneProps {
   disabled?: boolean;
 }
 
-export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
+export function UploadZone({ file, onFileSelect, disabled }: Readonly<UploadZoneProps>) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +82,14 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
   return (
     <div className="space-y-2">
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            (e.currentTarget.querySelector("input[type=file]") as HTMLInputElement)?.click();
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           if (!disabled) setDragOver(true);

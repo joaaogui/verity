@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useValidate } from "@/hooks/use-validate";
 
 const HISTORY_KEY = "verity-history";
+const emptySubscribe = () => () => {};
+const getIsMac = () => /Mac|iPhone|iPad/.test(navigator.userAgent);
+const getFalse = () => false;
 
 function loadHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return [];
+  if (globalThis.window === undefined) return [];
   try {
     const raw = sessionStorage.getItem(HISTORY_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -30,35 +33,42 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [expectation, setExpectation] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [hydrated, setHydrated] = useState(false);
-  const [isMac, setIsMac] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const submitRef = useRef<() => void>(null);
 
-  useEffect(() => {
-    setHistory(loadHistory());
-    setHydrated(true);
-    setIsMac(/Mac|iPhone|iPad/.test(navigator.userAgent));
-  }, []);
+  const isMac = useSyncExternalStore(emptySubscribe, getIsMac, getFalse);
+
+  if (!historyLoaded && globalThis.window !== undefined) {
+    setHistoryLoaded(true);
+    const loaded = loadHistory();
+    if (loaded.length > 0) {
+      setHistory(loaded);
+    }
+  }
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!historyLoaded) return;
     sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  }, [history, hydrated]);
+  }, [history, historyLoaded]);
 
-  const mutation = useValidate();
+  const { verdict, fields, isPending, isExtractingFields, error, mutate } = useValidate();
 
   const handleSubmit = useCallback(() => {
     if (!file || !expectation.trim()) return;
 
-    mutation.mutate(
+    mutate(
       { file, expectation: expectation.trim() },
       {
-        onSuccess: (result) => {
+        onSuccess: (verdictResult) => {
           setHistory((prev) => [
             {
               id: crypto.randomUUID(),
               fileName: file.name,
-              result,
+              result: {
+                ...verdictResult,
+                extractedFields: {},
+                summary: "",
+              },
               timestamp: Date.now(),
             },
             ...prev,
@@ -66,9 +76,11 @@ export default function Home() {
         },
       }
     );
-  }, [file, expectation, mutation.mutate]);
+  }, [file, expectation, mutate]);
 
-  submitRef.current = handleSubmit;
+  useEffect(() => {
+    submitRef.current = handleSubmit;
+  });
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -77,13 +89,14 @@ export default function Home() {
         submitRef.current?.();
       }
     }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const canSubmit = file && expectation.trim() && !mutation.isPending;
-  const hasNoResults = !mutation.data && !mutation.isPending && !mutation.error;
-  const hasResults = mutation.data || mutation.isPending || mutation.error;
+  const canSubmit = file && expectation.trim() && !isPending;
+  const hasVerdict = verdict != null;
+  const hasNoResults = !hasVerdict && !isPending && !error;
+  const hasResults = hasVerdict || isPending || error != null;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
@@ -112,13 +125,13 @@ export default function Home() {
           <ExpectationInput
             value={expectation}
             onChange={setExpectation}
-            disabled={mutation.isPending}
+            disabled={isPending}
           />
 
           <UploadZone
             file={file}
             onFileSelect={setFile}
-            disabled={mutation.isPending}
+            disabled={isPending}
           />
 
           <div>
@@ -128,7 +141,7 @@ export default function Home() {
               onClick={handleSubmit}
               disabled={!canSubmit}
             >
-              {mutation.isPending ? (
+              {isPending ? (
                 <>
                   <Loader2 className="size-5 animate-spin" />
                   Analyzing...
@@ -148,19 +161,23 @@ export default function Home() {
         </div>
 
         <div className="mt-4 xl:mt-0">
-          {mutation.error && (
+          {error && (
             <div className="animate-in fade-in-0 duration-200">
               <Alert variant="destructive">
                 <AlertCircle className="size-4" />
-                <AlertDescription>{mutation.error.message}</AlertDescription>
+                <AlertDescription>{error.message}</AlertDescription>
               </Alert>
             </div>
           )}
 
-          {mutation.isPending && <ResultSkeleton />}
+          {isPending && <ResultSkeleton />}
 
-          {mutation.data && !mutation.isPending && (
-            <ResultCard result={mutation.data} />
+          {verdict && !isPending && (
+            <ResultCard
+              verdict={verdict}
+              fields={fields}
+              isExtractingFields={isExtractingFields}
+            />
           )}
         </div>
       </div>

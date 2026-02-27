@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
-function Bone({ className }: { className?: string }) {
+function Bone({ className }: Readonly<{ className?: string }>) {
   return (
     <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />
   );
@@ -36,8 +36,8 @@ export function ResultSkeleton() {
         <div className="space-y-2">
           <Bone className="h-3 w-28" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="space-y-1">
+            {["field-1", "field-2", "field-3", "field-4", "field-5", "field-6"].map((id) => (
+              <div key={id} className="space-y-1">
                 <Bone className="h-3 w-16" />
                 <Bone className="h-4 w-full" />
               </div>

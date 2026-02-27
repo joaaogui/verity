@@ -1,7 +1,7 @@
 "use server";
 
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES } from "@/lib/schemas";
 import { getLLMProvider } from "@/lib/llm/provider";
 import { resizeImageForLLM } from "@/lib/document/image-processor";
@@ -33,7 +33,8 @@ export async function runTestCase(
 
     const fileBuffer = fs.readFileSync(fullPath);
     const ext = path.extname(filePath).toLowerCase();
-    const mimeType = ext === ".pdf" ? "application/pdf" : ext === ".png" ? "image/png" : "image/jpeg";
+    const mimeMap: Record<string, string> = { ".pdf": "application/pdf", ".png": "image/png" };
+    const mimeType = mimeMap[ext] ?? "image/jpeg";
 
     if (!ACCEPTED_FILE_TYPES.includes(mimeType as (typeof ACCEPTED_FILE_TYPES)[number])) {
       return { id, matchesExpectation: false, category: "", confidence: 0, matchExplanation: "", processingTimeMs: 0, error: "Unsupported file type" };

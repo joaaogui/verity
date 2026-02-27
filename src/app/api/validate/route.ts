@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/lib/schemas";
 import { getLLMProvider } from "@/lib/llm/provider";
 import { resizeImageForLLM } from "@/lib/document/image-processor";
@@ -7,8 +7,12 @@ import { sanitizeUserInput } from "@/lib/sanitize";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { DocumentPart } from "@/lib/llm/types";
 
-function errorResponse(error: string, code: string, status: number) {
-  return NextResponse.json({ error, code }, { status });
+function sseEvent(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function errorEvent(error: string, code: string): string {
+  return sseEvent("error", { error, code });
 }
 
 export async function POST(request: NextRequest) {
@@ -17,39 +21,44 @@ export async function POST(request: NextRequest) {
 
   const startTime = Date.now();
 
+  let file: File | null = null;
+  let expectation = "";
+  let parts: DocumentPart[] = [];
+  let truncated = false;
+
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    file = formData.get("file") as File | null;
     const rawExpectation = formData.get("expectation") as string | null;
 
     if (!file) {
-      return errorResponse("No file provided", "validation_error", 400);
+      return new Response(errorEvent("No file provided", "validation_error"), {
+        headers: { "Content-Type": "text/event-stream" },
+      });
     }
 
-    const expectation = sanitizeUserInput(rawExpectation ?? "");
+    expectation = sanitizeUserInput(rawExpectation ?? "");
     if (!expectation) {
-      return errorResponse("Expectation is required", "validation_error", 400);
+      return new Response(errorEvent("Expectation is required", "validation_error"), {
+        headers: { "Content-Type": "text/event-stream" },
+      });
     }
 
     if (!ACCEPTED_FILE_TYPES.includes(file.type as (typeof ACCEPTED_FILE_TYPES)[number])) {
-      return errorResponse(
-        `Unsupported file type: ${file.type}. Accepted: PDF, JPG, PNG, WebP`,
-        "validation_error",
-        400
+      return new Response(
+        errorEvent(`Unsupported file type: ${file.type}. Accepted: PDF, JPG, PNG, WebP`, "validation_error"),
+        { headers: { "Content-Type": "text/event-stream" } }
       );
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      return errorResponse(
-        `File exceeds ${MAX_FILE_SIZE_MB}MB limit`,
-        "validation_error",
-        400
+      return new Response(
+        errorEvent(`File exceeds ${MAX_FILE_SIZE_MB}MB limit`, "validation_error"),
+        { headers: { "Content-Type": "text/event-stream" } }
       );
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    let parts: DocumentPart[];
-    let truncated = false;
 
     if (file.type === "application/pdf") {
       const pdfResult = await processPdf(fileBuffer);
@@ -59,42 +68,56 @@ export async function POST(request: NextRequest) {
       const resized = await resizeImageForLLM(fileBuffer);
       parts = [{ buffer: resized, mimeType: "image/jpeg" }];
     }
-
-    const provider = getLLMProvider();
-    const result = await provider.validateDocument(parts, expectation);
-
-    const processingTimeMs = Date.now() - startTime;
-
-    return NextResponse.json({
-      ...result,
-      processingTimeMs,
-      truncated,
-    });
   } catch (error) {
-    console.error("Validation error:", error);
-
-    if (error instanceof SyntaxError) {
-      return errorResponse(
-        "Failed to parse AI response. Please try again.",
-        "parse_error",
-        502
-      );
-    }
-
-    const message = error instanceof Error ? error.message : "Unknown error";
-
-    if (message.includes("API key") || message.includes("401") || message.includes("403")) {
-      return errorResponse("AI service configuration error.", "provider_error", 502);
-    }
-
-    if (message.includes("429") || message.includes("quota")) {
-      return errorResponse("AI service rate limit exceeded. Try again shortly.", "provider_error", 502);
-    }
-
-    return errorResponse(
-      "An unexpected error occurred. Please try again.",
-      "unknown",
-      500
-    );
+    console.error("Validation setup error:", error);
+    return new Response(errorEvent("An unexpected error occurred.", "unknown"), {
+      headers: { "Content-Type": "text/event-stream" },
+    });
   }
+
+  const encoder = new TextEncoder();
+  const provider = getLLMProvider();
+  const capturedParts = parts;
+  const capturedExpectation = expectation;
+  const capturedTruncated = truncated;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const verdict = await provider.classifyDocument(capturedParts, capturedExpectation);
+        const verdictTimeMs = Date.now() - startTime;
+        controller.enqueue(
+          encoder.encode(sseEvent("verdict", { ...verdict, processingTimeMs: verdictTimeMs, truncated: capturedTruncated }))
+        );
+
+        try {
+          const fields = await provider.extractFields(capturedParts, capturedExpectation);
+          const totalTimeMs = Date.now() - startTime;
+          controller.enqueue(
+            encoder.encode(sseEvent("complete", { ...fields, processingTimeMs: totalTimeMs }))
+          );
+        } catch (e) {
+          console.error("Field extraction failed:", e);
+          controller.enqueue(
+            encoder.encode(sseEvent("complete", { extractedFields: {}, summary: "Field extraction failed.", processingTimeMs: Date.now() - startTime }))
+          );
+        }
+      } catch (e) {
+        console.error("Classification failed:", e);
+        controller.enqueue(
+          encoder.encode(errorEvent("Failed to classify document. Please try again.", "parse_error"))
+        );
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }

@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";

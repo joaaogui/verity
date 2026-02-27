@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,7 @@ export function ExpectationInput({
   value,
   onChange,
   disabled,
-}: ExpectationInputProps) {
+}: Readonly<ExpectationInputProps>) {
   const [expanded, setExpanded] = useState(false);
   const [focused, setFocused] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -49,9 +49,11 @@ export function ExpectationInput({
 
   const showDropdown = focused && value.length >= 3 && suggestions.length > 0;
 
-  useEffect(() => {
+  const [prevSuggestions, setPrevSuggestions] = useState(suggestions);
+  if (suggestions !== prevSuggestions) {
+    setPrevSuggestions(suggestions);
     setHighlightIndex(-1);
-  }, [suggestions]);
+  }
 
   const acceptGhost = useCallback(() => {
     if (ghostText) {
@@ -118,10 +120,7 @@ export function ExpectationInput({
             <span className="truncate px-3 text-sm text-transparent">
               {value}
             </span>
-            <span
-              className="truncate text-sm text-muted-foreground/40"
-              onClick={acceptGhost}
-            >
+            <span className="truncate text-sm text-muted-foreground/40">
               {ghostText.slice(value.length)}
             </span>
           </div>
