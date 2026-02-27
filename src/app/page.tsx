@@ -43,9 +43,10 @@ export default function Home() {
 
   const canSubmit = file && expectation.trim() && !mutation.isPending;
   const hasNoResults = !mutation.data && !mutation.isPending && !mutation.error;
+  const hasResults = mutation.data || mutation.isPending || mutation.error;
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12">
+    <main className="mx-auto max-w-6xl px-4 py-12">
       <div className="mb-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -61,61 +62,59 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="space-y-4">
-        <ExpectationInput
-          value={expectation}
-          onChange={setExpectation}
-          disabled={mutation.isPending}
-        />
+      <div className={`gap-8 ${hasResults ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""}`}>
+        <div className="space-y-4">
+          <ExpectationInput
+            value={expectation}
+            onChange={setExpectation}
+            disabled={mutation.isPending}
+          />
 
-        <UploadZone
-          file={file}
-          onFileSelect={setFile}
-          disabled={mutation.isPending}
-        />
+          <UploadZone
+            file={file}
+            onFileSelect={setFile}
+            disabled={mutation.isPending}
+          />
 
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-        >
-          {mutation.isPending ? (
-            <>
-              <Loader2 className="size-5 animate-spin" />
-              Analyzing...
-            </>
-          ) : (
-            "Validate Document"
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
+            {mutation.isPending ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              "Validate Document"
+            )}
+          </Button>
+
+          {hasNoResults && history.length === 0 && <EmptyState />}
+
+          <div className={history.length > 0 ? "mt-4" : ""}>
+            <HistoryList entries={history} />
+          </div>
+        </div>
+
+        <div className="mt-6 xl:mt-0">
+          {mutation.error && (
+            <div className="animate-in fade-in-0 duration-200">
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription>{mutation.error.message}</AlertDescription>
+              </Alert>
+            </div>
           )}
-        </Button>
-      </div>
 
-      {mutation.error && (
-        <div className="mt-6 animate-in fade-in-0 duration-200">
-          <Alert variant="destructive">
-            <AlertCircle className="size-4" />
-            <AlertDescription>{mutation.error.message}</AlertDescription>
-          </Alert>
+          {mutation.isPending && <ResultSkeleton />}
+
+          {mutation.data && !mutation.isPending && (
+            <ResultCard result={mutation.data} />
+          )}
         </div>
-      )}
-
-      {mutation.isPending && (
-        <div className="mt-6">
-          <ResultSkeleton />
-        </div>
-      )}
-
-      {mutation.data && !mutation.isPending && (
-        <div className="mt-6">
-          <ResultCard result={mutation.data} />
-        </div>
-      )}
-
-      {hasNoResults && history.length === 0 && <EmptyState />}
-
-      <div className="mt-8">
-        <HistoryList entries={history} />
       </div>
     </main>
   );

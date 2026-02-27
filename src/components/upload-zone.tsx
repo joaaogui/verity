@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Upload, FileText, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
+import { FileThumbnail } from "@/components/file-thumbnail";
 
 interface UploadZoneProps {
   file: File | null;
@@ -52,8 +53,8 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
 
   if (file) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-        <FileText className="size-5 shrink-0 text-primary" />
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 animate-in fade-in-0 duration-200">
+        <FileThumbnail file={file} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">
             {file.name}
