@@ -10,7 +10,7 @@ function cleanAndParse(text: string): unknown {
   if (!text || text.trim().length === 0) {
     throw new Error("Empty response from LLM");
   }
-  const cleaned = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+  const cleaned = text.replace(/\p{Cc}/gu, (ch) => (ch === "\n" || ch === "\r" || ch === "\t" ? ch : ""));
   let parsed = JSON.parse(cleaned);
   if (Array.isArray(parsed)) parsed = parsed[0];
   return parsed;
