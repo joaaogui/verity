@@ -33,23 +33,20 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [expectation, setExpectation] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const submitRef = useRef<() => void>(null);
 
   const isMac = useSyncExternalStore(emptySubscribe, getIsMac, getFalse);
 
-  if (!historyLoaded && globalThis.window !== undefined) {
-    setHistoryLoaded(true);
-    const loaded = loadHistory();
-    if (loaded.length > 0) {
-      setHistory(loaded);
-    }
-  }
+  useEffect(() => {
+    setHistory(loadHistory());
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    if (!historyLoaded) return;
+    if (!mounted) return;
     sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  }, [history, historyLoaded]);
+  }, [history, mounted]);
 
   const { verdict, fields, isPending, isExtractingFields, error, mutate } = useValidate();
 
