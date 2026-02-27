@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Target, Clock } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ValidateResult } from "@/lib/api-client";
@@ -42,41 +42,54 @@ export function ResultCard({ result }: ResultCardProps) {
               {statusText}
             </Badge>
             <Badge variant="secondary">{result.categoryLabel}</Badge>
-            <span className="text-sm text-muted-foreground">
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1" title="Confidence">
+              <Target className="size-3" />
               {Math.round(result.confidence * 100)}%
             </span>
+            <span className="flex items-center gap-1 tabular-nums" title="Processing time">
+              <Clock className="size-3" />
+              {(result.processingTimeMs / 1000).toFixed(1)}s
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {(result.processingTimeMs / 1000).toFixed(1)}s
-          </span>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-5">
         <div>
-          <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Summary
+          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+            Why
           </h4>
           <p className="text-sm leading-relaxed text-foreground">
+            {result.matchExplanation}
+          </p>
+        </div>
+
+        <div>
+          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+            Summary
+          </h4>
+          <p className="text-sm leading-relaxed text-foreground/80">
             {result.summary}
           </p>
         </div>
 
         {fieldEntries.length > 0 && (
           <div>
-            <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
               Extracted Fields
             </h4>
-            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-x-8">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
               {fieldEntries.map(([key, value]) => (
                 <div
                   key={key}
-                  className="flex items-baseline justify-between gap-2 border-b border-border/50 py-1.5 last:border-0"
+                  className="border-b border-border/40 py-2 last:border-0"
                 >
-                  <span className="shrink-0 text-xs capitalize text-muted-foreground">
+                  <span className="block text-[11px] capitalize text-foreground/40">
                     {key.replace(/_/g, " ")}
                   </span>
-                  <span className="text-right text-sm font-medium text-foreground">
+                  <span className="block text-sm text-foreground">
                     {value}
                   </span>
                 </div>
@@ -84,15 +97,6 @@ export function ResultCard({ result }: ResultCardProps) {
             </div>
           </div>
         )}
-
-        <div>
-          <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Match Explanation
-          </h4>
-          <p className="text-sm italic leading-relaxed text-muted-foreground">
-            {result.matchExplanation}
-          </p>
-        </div>
 
         {result.truncated && (
           <p className="text-xs text-amber-600">
