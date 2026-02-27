@@ -49,9 +49,14 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
       <div className="mb-10 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-display), sans-serif" }}>
-            Verity
-          </h1>
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-4xl font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-display), sans-serif" }}>
+              Verity
+            </h1>
+            <span className="text-[10px] font-medium text-muted-foreground/50">
+              {process.env.NEXT_PUBLIC_APP_VERSION}
+            </span>
+          </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
             AI-powered document validation
           </p>
