@@ -47,27 +47,16 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
-      <div className="mb-10">
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Font comparison</p>
-          <ThemeToggle />
+      <div className="mb-10 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground">
+            Verity
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            AI-powered document validation
+          </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { name: "Lora", cls: "font-lora", category: "Authoritative Serif" },
-            { name: "Merriweather", cls: "font-merriweather", category: "Authoritative Serif" },
-            { name: "Playfair Display", cls: "font-playfair", category: "Editorial Serif" },
-            { name: "Space Grotesk", cls: "font-space-grotesk", category: "AI / Futuristic" },
-            { name: "Outfit", cls: "font-outfit", category: "AI / Geometric" },
-          ].map((f) => (
-            <div key={f.name} className="rounded-lg border border-border bg-card p-4">
-              <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">{f.category}</p>
-              <p className={`${f.cls} text-3xl font-bold tracking-tight text-foreground`}>Verity</p>
-              <p className={`${f.cls} mt-1 text-lg text-foreground/70`}>Verity</p>
-              <p className="mt-2 text-[11px] text-muted-foreground">{f.name}</p>
-            </div>
-          ))}
-        </div>
+        <ThemeToggle />
       </div>
 
       <div className={`gap-6 ${hasResults ? "xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" : ""}`}>
