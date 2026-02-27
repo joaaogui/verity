@@ -88,60 +88,9 @@ export function ResultCard({ verdict, fields, isExtractingFields }: ResultCardPr
           </p>
         </div>
 
-        {fields?.summary ? (
-          <div className="rounded-md bg-muted/50 px-3 py-3 animate-in fade-in-0 duration-300">
-            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
-              Summary
-            </h4>
-            <p className="text-sm leading-relaxed text-foreground/80">
-              {fields.summary}
-            </p>
-          </div>
-        ) : isExtractingFields ? (
-          <div className="space-y-2 rounded-md bg-muted/50 px-3 py-3">
-            <Bone className="h-3 w-16" />
-            <Bone className="h-4 w-full" />
-            <Bone className="h-4 w-3/4" />
-          </div>
-        ) : null}
+        <SummarySection summary={fields?.summary} isLoading={isExtractingFields} />
 
-        {fieldEntries.length > 0 ? (
-          <div className="animate-in fade-in-0 duration-300">
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
-              Extracted Fields
-            </h4>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
-              {fieldEntries.map(([key, value]) => (
-                <div
-                  key={key}
-                  className="border-b border-border/40 py-2 last:border-0"
-                >
-                  <span className="block text-[11px] capitalize text-foreground/40">
-                    {key.replaceAll("_", " ")}
-                  </span>
-                  <span className="block text-sm text-foreground">
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : isExtractingFields ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Loader2 className="size-3 animate-spin text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Extracting fields...</span>
-            </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-1">
-                  <Bone className="h-3 w-16" />
-                  <Bone className="h-4 w-full" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <FieldsSection entries={fieldEntries} isLoading={isExtractingFields} />
 
         {verdict.truncated && (
           <p className="text-xs text-warning">
@@ -151,4 +100,68 @@ export function ResultCard({ verdict, fields, isExtractingFields }: ResultCardPr
       </CardContent>
     </Card>
   );
+}
+
+function SummarySection({ summary, isLoading }: { summary?: string; isLoading?: boolean }) {
+  if (summary) {
+    return (
+      <div className="rounded-md bg-muted/50 px-3 py-3 animate-in fade-in-0 duration-300">
+        <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+          Summary
+        </h4>
+        <p className="text-sm leading-relaxed text-foreground/80">{summary}</p>
+      </div>
+    );
+  }
+  if (isLoading) {
+    return (
+      <div className="space-y-2 rounded-md bg-muted/50 px-3 py-3">
+        <Bone className="h-3 w-16" />
+        <Bone className="h-4 w-full" />
+        <Bone className="h-4 w-3/4" />
+      </div>
+    );
+  }
+  return null;
+}
+
+function FieldsSection({ entries, isLoading }: { entries: [string, string][]; isLoading?: boolean }) {
+  if (entries.length > 0) {
+    return (
+      <div className="animate-in fade-in-0 duration-300">
+        <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
+          Extracted Fields
+        </h4>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
+          {entries.map(([key, value]) => (
+            <div key={key} className="border-b border-border/40 py-2 last:border-0">
+              <span className="block text-[11px] capitalize text-foreground/40">
+                {key.replaceAll("_", " ")}
+              </span>
+              <span className="block text-sm text-foreground">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Loader2 className="size-3 animate-spin text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Extracting fields...</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-1">
+              <Bone className="h-3 w-16" />
+              <Bone className="h-4 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
