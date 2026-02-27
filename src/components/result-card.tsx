@@ -16,7 +16,7 @@ function Bone({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />;
 }
 
-export function ResultCard({ verdict, fields, isExtractingFields }: ResultCardProps) {
+export function ResultCard({ verdict, fields, isExtractingFields }: Readonly<ResultCardProps>) {
   const isMatch = verdict.matchesExpectation;
   const isLowConfidence = verdict.confidence < 0.7;
 
