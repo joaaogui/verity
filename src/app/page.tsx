@@ -101,7 +101,7 @@ export default function Home() {
             href="/docs"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            Docs
+            How was this built?
           </Link>
           <ThemeToggle />
         </div>
