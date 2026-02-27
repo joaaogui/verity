@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { Upload, FileText, X } from "lucide-react";
 import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/lib/schemas";
+import { Button } from "@/components/ui/button";
 
 interface UploadZoneProps {
   file: File | null;
@@ -51,26 +52,27 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
 
   if (file) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3">
-        <FileText className="h-5 w-5 shrink-0 text-blue-400" />
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+        <FileText className="size-5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-zinc-200">
+          <p className="truncate text-sm font-medium text-foreground">
             {file.name}
           </p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {(file.size / 1024).toFixed(0)} KB
           </p>
         </div>
         {!disabled && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={() => {
               onFileSelect(null);
               setError(null);
             }}
-            className="rounded p-1 text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300"
           >
-            <X className="h-4 w-4" />
-          </button>
+            <X className="size-4" />
+          </Button>
         )}
       </div>
     );
@@ -87,16 +89,16 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
         onDrop={handleDrop}
         className={`relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 transition-colors ${
           dragOver
-            ? "border-blue-500 bg-blue-500/10"
-            : "border-zinc-700 bg-zinc-800/30 hover:border-zinc-500"
+            ? "border-primary bg-primary/5"
+            : "border-border bg-muted/30 hover:border-muted-foreground/50"
         } ${disabled ? "pointer-events-none opacity-50" : ""}`}
       >
-        <Upload className="mb-3 h-8 w-8 text-zinc-500" />
-        <p className="text-sm text-zinc-400">
+        <Upload className="mb-3 size-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
           Drop file here or{" "}
-          <span className="font-medium text-blue-400">click to upload</span>
+          <span className="font-medium text-primary">click to upload</span>
         </p>
-        <p className="mt-1 text-xs text-zinc-600">
+        <p className="mt-1 text-xs text-muted-foreground/60">
           PDF, JPG, PNG, WebP &middot; Max {MAX_FILE_SIZE_MB}MB
         </p>
         <input
@@ -107,7 +109,7 @@ export function UploadZone({ file, onFileSelect, disabled }: UploadZoneProps) {
           className="absolute inset-0 cursor-pointer opacity-0"
         />
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

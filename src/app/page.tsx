@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Loader2, FileSearch } from "lucide-react";
+import { Loader2, FileSearch, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UploadZone } from "@/components/upload-zone";
 import { ExpectationInput } from "@/components/expectation-input";
 import { ResultCard } from "@/components/result-card";
@@ -42,10 +44,12 @@ export default function Home() {
     <main className="mx-auto max-w-2xl px-4 py-12">
       <div className="mb-10 text-center">
         <div className="mb-4 flex items-center justify-center gap-3">
-          <FileSearch className="h-8 w-8 text-blue-400" />
-          <h1 className="text-3xl font-bold tracking-tight">DocValidator</h1>
+          <FileSearch className="size-8 text-primary" />
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            DocValidator
+          </h1>
         </div>
-        <p className="text-zinc-500">
+        <p className="text-muted-foreground">
           Upload a document, describe what you expect, get instant verification.
         </p>
       </div>
@@ -63,26 +67,28 @@ export default function Home() {
           disabled={mutation.isPending}
         />
 
-        <button
+        <Button
+          size="lg"
+          className="w-full"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {mutation.isPending ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="size-5 animate-spin" />
               Analyzing...
             </>
           ) : (
             "Validate Document"
           )}
-        </button>
+        </Button>
       </div>
 
       {mutation.error && (
-        <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-          {mutation.error.message}
-        </div>
+        <Alert variant="destructive" className="mt-6">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{mutation.error.message}</AlertDescription>
+        </Alert>
       )}
 
       {mutation.data && (
