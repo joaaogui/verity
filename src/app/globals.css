@@ -138,6 +138,7 @@
     cursor: pointer;
     }
   [data-slot="badge"] {
+    cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
   [data-slot="badge"]:hover {
