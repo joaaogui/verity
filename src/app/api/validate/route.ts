@@ -68,8 +68,7 @@ export async function POST(request: NextRequest) {
       const resized = await resizeImageForLLM(fileBuffer);
       parts = [{ buffer: resized, mimeType: "image/jpeg" }];
     }
-  } catch (error) {
-    console.error("Validation setup error:", error);
+  } catch {
     return new Response(errorEvent("An unexpected error occurred.", "unknown"), {
       headers: { "Content-Type": "text/event-stream" },
     });
@@ -96,14 +95,12 @@ export async function POST(request: NextRequest) {
           controller.enqueue(
             encoder.encode(sseEvent("complete", { ...fields, processingTimeMs: totalTimeMs }))
           );
-        } catch (e) {
-          console.error("Field extraction failed:", e);
+        } catch {
           controller.enqueue(
             encoder.encode(sseEvent("complete", { extractedFields: {}, summary: "Field extraction was not available for this document. The classification above is still valid.", processingTimeMs: Date.now() - startTime }))
           );
         }
-      } catch (e) {
-        console.error("Classification failed:", e);
+      } catch {
         controller.enqueue(
           encoder.encode(errorEvent("Failed to classify document. Please try again.", "parse_error"))
         );

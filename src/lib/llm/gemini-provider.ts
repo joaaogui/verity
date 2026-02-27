@@ -56,9 +56,7 @@ export class GeminiProvider implements LLMProvider {
         return validatorResponseSchema.parse(parsed);
       } catch (e) {
         lastError = e;
-        if (attempt < MAX_ATTEMPTS - 1) {
-          console.warn(`validateDocument attempt ${attempt + 1} failed, retrying...`);
-        }
+        if (attempt >= MAX_ATTEMPTS - 1) throw e;
       }
     }
     throw lastError;
@@ -76,9 +74,7 @@ export class GeminiProvider implements LLMProvider {
         return classifyResponseSchema.parse(parsed);
       } catch (e) {
         lastError = e;
-        if (attempt < MAX_ATTEMPTS - 1) {
-          console.warn(`classifyDocument attempt ${attempt + 1} failed, retrying...`);
-        }
+        if (attempt >= MAX_ATTEMPTS - 1) throw e;
       }
     }
     throw lastError;
@@ -91,14 +87,16 @@ export class GeminiProvider implements LLMProvider {
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        const text = await callGemini(dataParts, prompt, 1024);
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        const text = await callGemini(dataParts, prompt, 2048);
         const parsed = flattenFields(cleanAndParse(text) as Record<string, unknown>);
         return extractResponseSchema.parse(parsed);
       } catch (e) {
         lastError = e;
-        if (attempt < MAX_ATTEMPTS - 1) {
-          console.warn(`extractFields attempt ${attempt + 1} failed, retrying...`);
-        }
+        console.warn(`extractFields attempt ${attempt + 1} failed:`, e instanceof Error ? e.message : e);
+        if (attempt >= MAX_ATTEMPTS - 1) throw e;
       }
     }
     throw lastError;

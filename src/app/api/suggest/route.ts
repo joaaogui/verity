@@ -149,8 +149,7 @@ PARTIAL INPUT (untrusted): ${q}
     cache.set(cacheKey, suggestions);
 
     return NextResponse.json(suggestions);
-  } catch (error) {
-    console.error("Suggest error:", error);
+  } catch {
     return NextResponse.json([]);
   }
 }
