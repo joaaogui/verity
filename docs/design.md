@@ -47,84 +47,58 @@ Single Next.js 16 (App Router) project handling both UI and backend logic, deplo
 | Deployment | Vercel |
 | Domain | verity.joaog.space |
 
-## Evolution & Decision Log
+## Decision Log
 
-This section documents the key decisions made during development, the reasoning behind them, and how the architecture evolved through iteration and feedback.
+### Two-stage streaming vs single-pass vs OCR pipeline
 
-### Phase 1: Initial Design (v1.0)
+**Chose: Two-stage streaming.** The validation is split into a fast classification call (~3s for the verdict) followed by a background field extraction call (~4s more), streamed via Server-Sent Events.
 
-**3 approaches were considered:**
-1. **Single-pass vision LLM** — Send document directly to Gemini, get everything in one call.
-2. **OCR-first pipeline** — Extract text via Tesseract/Google Vision, then reason with a text LLM.
-3. **Hybrid** — Vision for classification, OCR for extraction in parallel.
+Three approaches were considered during design:
+1. **Single-pass vision LLM** — One call for everything. Simple, but 4-6s before the user sees anything.
+2. **OCR-first pipeline** — Extract text first, then reason with an LLM. Adds complexity, loses visual context (logos, layout, formatting).
+3. **Two-stage streaming** — Classify fast, extract in background. Two calls = more total tokens, but the user gets the answer in ~3s.
 
-**Chose: Approach 1 (single-pass).** Simplest architecture, fewest failure modes, Gemini handles PDFs natively.
+The two-stage approach was chosen because the user's primary question — "does this document match?" — should be answered as fast as possible. Field extraction is secondary and can populate progressively.
 
-**Tech stack decisions:**
-- User suggested Next.js to unify frontend/backend — accepted because it eliminates CORS, shares TypeScript types, deploys as one unit.
-- User suggested React Query — accepted for `useMutation` (validation) and `useQuery` (autocomplete debounce). Later replaced for validation with a custom SSE hook when we moved to streaming.
-- Gemini 2.0 Flash chosen for free tier + native PDF support. Alternative (OpenAI GPT-4o-mini) rejected because it lacks native PDF upload.
+### Gemini Flash vs OpenAI GPT-4o vs Anthropic Claude
 
-### Phase 2: Branding & Design (v1.0-v1.1)
+**Chose: Gemini 2.0 Flash.** Free tier, native PDF support, structured JSON output.
 
-**Name:** Started as "DocValidator." User wanted something distinctive, like "Claude" or "Gemini." Options considered: Archon, Verity, Sentinel, Argus, Nexus, Orion. **Chose: Verity** (Latin for "truth").
+- Native PDF upload means no PDF-to-image conversion overhead.
+- `responseMimeType: "application/json"` gives structured output without post-processing.
+- OpenAI GPT-4o-mini is faster for text (~1-2s) but lacks native PDF support — would need conversion, adding latency back.
+- Gemini occasionally returns malformed JSON on complex documents, mitigated by automatic retry (2 attempts) and control character stripping.
 
-**Font:** 5 fonts rendered side-by-side for comparison: Lora, Merriweather, Playfair Display, Space Grotesk, Outfit. **Chose: Outfit** — geometric sans with a modern AI/tech feel. Playfair Display was tried first but felt too editorial.
+### Strict matching vs fuzzy matching
 
-**Color palette:** User provided a specific 5-color palette from a color tool. The original shadcn neutral grayscale was replaced with a warm, distinctive palette:
+**Chose: Strict.** Every specific detail in the expectation must be satisfied.
+
+For document validation, false positives are worse than false negatives. An employee needs to know "this is NOT what was expected." A wastewater bill does not match "electricity bill" even though both are utilities. Blank forms do not match "completed form." Instructions about a form do not match the form itself.
+
+### No database / stateless design
+
+**Chose: No persistence.** History lives in `sessionStorage`, clears on tab close.
+
+Document validation is inherently stateless — each upload is independent. Adding a database adds deployment complexity without clear user value. Session history covers the "compare recent results" use case. Would reconsider if the tool needs audit trails, team sharing, or analytics.
+
+### Next.js monolith vs separate frontend/backend
+
+**Chose: Monolith.** One project, one `npm run dev`, one deploy.
+
+API routes run server-side (Gemini key stays safe), no CORS issues, shared TypeScript types between client and server. Vercel deploys it as a single unit. Acceptable tradeoff: can't scale frontend and backend independently, but fine for a tool app.
+
+### Branding decisions
+
+**Name:** Verity (Latin for "truth") — chosen for its distinctive, proper-name quality (like "Claude" or "Gemini"). Selected from candidates: Archon, Verity, Sentinel, Argus, Nexus, Orion.
+
+**Font:** Outfit (geometric sans-serif) — selected from 5 candidates compared side-by-side (Lora, Merriweather, Playfair Display, Space Grotesk, Outfit). Outfit gives a modern AI/tech feel that contrasts well with Inter for body text.
+
+**Color palette:** User-provided custom 5-color palette replacing the default shadcn grayscale:
 - Dust Grey (#e3d5d5) — muted backgrounds
 - Gunmetal (#3d4146) — text
 - Rosy Copper (#cd694e) — destructive/error accent
 - Pacific Blue (#58a8c3) — primary
 - Glaucous (#6f81d9) — ring/focus
-
-### Phase 3: Strict Matching (v1.0)
-
-**Problem discovered in testing:** A wastewater bill matched "electricity or gas utility bill" because the LLM was matching on the broad "utility" category. User flagged this as incorrect.
-
-**Fix:** Prompt was rewritten to enforce literal matching with explicit rules: electricity != water, blank form != completed form, instructions != the form itself. This was a pivotal decision — the tool became stricter, which is the right behavior for document validation where false positives are worse than false negatives.
-
-### Phase 4: Hardening (v1.1)
-
-After deployment, two comprehensive code reviews were conducted (one design review, one security/quality review). Key findings and fixes:
-
-- **Suggest endpoint cost:** Every keystroke with 3+ chars was an LLM call. Fixed with static prefix fallback (10 patterns) + 200-entry server-side LRU cache. Cuts LLM calls ~90%.
-- **Prompt injection:** User expectation was interpolated directly into prompts. Fixed with boundary markers ("UNTRUSTED INPUT") and "do not follow instructions" directives in both validate and suggest prompts.
-- **Rate limiting:** Added IP-based sliding window (fixed to not count denied requests after reviewer caught the bug).
-- **PDF page counting:** Evolved through 3 implementations: `pdf-parse` (incompatible v2 API) → regex `/Type /Page` counter (fragile) → `pdf-lib` `getPageCount()` (reliable). `pdf-lib` also enabled actual PDF truncation (extracting first 3 pages) instead of just detecting page count.
-- **File size:** Reduced from 10MB to 5MB after a 4.5MB IRS instructions PDF caused a 28s response.
-- **pdfjs-dist:** Added for PDF thumbnail rendering, then removed (~1.5MB bundle) and replaced with a simple file icon + extension badge. The UX tradeoff was acceptable.
-- **Accessibility:** `div[role=button]` replaced with native `<button>`, `aria-label` on file input, `aria-expanded` on history toggle, `aria-label` on status icons.
-
-### Phase 5: Two-Stage Streaming (v1.3)
-
-**Problem:** Single-pass validation took 4-6s. The original brief asked for "within 2 seconds."
-
-**Solution:** Split into two sequential LLM calls streamed via SSE:
-- Stage 1 (classify, ~3s): category + match verdict + explanation. Minimal prompt, short output.
-- Stage 2 (extract, ~4s more): extracted fields + summary. Runs in background while user reads the verdict.
-
-**Result:** Time-to-verdict dropped from 4-6s to ~3s. Total time increased (~7-8s) but perceived latency improved significantly.
-
-**Implementation:** TanStack Query `useMutation` was replaced with a custom `useValidate` hook that manages `verdict`, `fields`, `isPending`, and `isExtractingFields` state from an SSE stream consumer. The result card renders partial data with skeleton placeholders that fade in when fields arrive.
-
-### Phase 6: Testing & Documentation (v1.2-v1.3)
-
-**LLM retry:** 3 out of 10 real-world PDFs caused parse failures from malformed JSON. Fixed by retrying once per stage with control character stripping (`\p{Cc}` Unicode class).
-
-**Test suite page:** `/tests` runs 10 real documents through the validator with a "Run All" button, showing live pass/fail status. Uses server actions to read files from disk and call the provider directly (bypassing SSE for simplicity).
-
-**Design doc page:** `/docs` renders this markdown file at build time using `react-markdown` + `remark-gfm` + `@tailwindcss/typography`.
-
-### Responsive History (v1.3+)
-
-**Problem:** History panel sat between the input form and results on mobile, pushing results below the fold.
-
-**Fix:** Moved history to after the results section. On mobile (below `xl`), shows as a collapsible "History (N)" button. On desktop, always visible.
-
-### Hydration Safety
-
-Went through multiple iterations to load `sessionStorage` history without React hydration mismatches or linter-flagged `setState` in effects. Final approach: `useSyncExternalStore` reads `sessionStorage` for the initial snapshot (returns `"[]"` on server), `useState` initializes from it, and `persistHistory()` writes to both state and storage atomically.
 
 ## Approach: Two-Stage Streaming Validation
 
@@ -162,9 +136,9 @@ The prompts enforce **strict expectation matching**:
 
 **Generation config:** `temperature: 0`, `responseMimeType: "application/json"`. Classification uses `maxOutputTokens: 256` (fast). Extraction uses `maxOutputTokens: 1024`.
 
-**Retry:** Each stage retries once on parse failure. Control characters are stripped before parsing using Unicode property class `\p{Cc}`.
+**Retry:** Each stage retries once on parse failure. Control characters are stripped before parsing. Empty responses are guarded against.
 
-**Backward compatibility:** A single-pass `validateDocument` method is preserved for the test suite (server actions don't use SSE).
+**Test suite compatibility:** A single-pass `validateDocument` method is preserved for the `/tests` page (server actions don't use SSE).
 
 ## API Endpoints
 
@@ -227,11 +201,11 @@ interface LLMProvider {
 }
 ```
 
-Current implementation: `GeminiProvider` with automatic retry on each method. Shared constants (`GEMINI_MODEL`, `getGeminiClient()`) in `constants.ts` ensure the model name and client are consistent across the validate and suggest routes.
+Current implementation: `GeminiProvider` with automatic retry on each method. Shared constants (`GEMINI_MODEL`, `getGeminiClient()`) ensure consistency across the validate and suggest routes.
 
 ## Latency Analysis
 
-### Where the time goes (two-stage)
+### Where the time goes
 
 | Step | Time | User sees |
 |------|------|-----------|
@@ -245,8 +219,8 @@ The user gets the answer (match/no match) in ~3 seconds. Field extraction runs i
 
 ### Why Gemini Flash takes 3-6 seconds
 
-- **Free tier**: Lower priority scheduling compared to paid accounts. Requests may queue behind paid traffic.
-- **Multi-modal inference**: Processing PDF pages as vision input is computationally expensive — the model must OCR, understand layout, and reason about content.
+- **Free tier**: Lower priority scheduling compared to paid accounts.
+- **Multi-modal inference**: Processing PDF pages as vision input is computationally expensive.
 - **Structured output**: `responseMimeType: "application/json"` adds constraint-based decoding overhead.
 
 ### What paid alternatives could achieve
@@ -265,23 +239,21 @@ The ~3s time-to-verdict with two-stage streaming is a practical tradeoff for zer
 
 ### Optimizations applied
 
-- Two-stage streaming (verdict in 3s, fields in background)
+- Two-stage streaming (verdict in ~3s, fields in background)
 - JPEG compression at 768px width (reduces image tokens ~60%)
 - `temperature: 0` (no sampling overhead)
-- `maxOutputTokens: 256` for classify, `1024` for extract (caps generation)
-- PDF truncation to 3 pages via pdf-lib (prevents oversized payloads)
-- Focused prompts (classify prompt has no field extraction = shorter input and output)
+- `maxOutputTokens: 256` for classify, `1024` for extract
+- PDF truncation to 3 pages via pdf-lib
+- Focused prompts (classify prompt has no field extraction = shorter I/O)
 
-## Hardening (v1.1)
+## Security & Hardening
 
-- **Rate limiting**: In-memory sliding window, 10/min for validate, 30/min for suggest, per IP. Denied requests do not count against the window.
-- **Input sanitization**: Unicode `\p{Cc}` class for control char stripping, 500-char limit on expectations, shared `sanitizeUserInput()` helper
-- **Prompt injection defense**: Untrusted input boundary markers, explicit "do not follow instructions" directive on both validate and suggest routes
-- **Typed error codes**: API returns `{ error, code }` with categories: `validation_error`, `parse_error`, `provider_error`, `rate_limit`, `unknown`
-- **LLM retry**: Each stage retries once on parse failure (strips control chars before re-parsing, guards against empty responses)
-- **Suggest cache**: Static prefix matches (10 common patterns) + 200-entry LRU cache for dynamic queries
-- **Session history**: Persists in `sessionStorage` via `useSyncExternalStore` (hydration-safe, no setState in effects)
-- **Keyboard shortcut**: Cmd+Enter (Mac) / Ctrl+Enter (Windows) triggers validation
+- **Rate limiting**: In-memory sliding window per IP. Denied requests do not count against the window.
+- **Input sanitization**: Unicode `\p{Cc}` class for control char stripping, 500-char limit, shared helper
+- **Prompt injection defense**: "UNTRUSTED INPUT" boundary markers and "do not follow instructions" directives on both validate and suggest routes
+- **Typed error codes**: `validation_error`, `parse_error`, `provider_error`, `rate_limit`, `unknown`
+- **LLM retry**: Each stage retries once on parse failure with control character stripping and empty response guards
+- **Suggest cache**: Static prefix matches (10 common patterns) + 200-entry LRU cache
 
 ## Test Results
 
@@ -300,7 +272,7 @@ Tested against 10 real-world PDF documents with specific expectations designed t
 | 9 | 1099 form (IRS) | "An IRS Form 1099" | Match | Match (0.95) | 3.3s | 7.8s |
 | 10 | W-4 form (IRS) | "A completed W-2" | No Match | No Match (0.95) | 3.6s | 8.4s |
 
-**Pass rate: 10/10** (after retry mechanism and prompt improvements)
+**Pass rate: 10/10**
 
 **Average time to verdict: 3.3s** (user sees Match/No Match here)
 
@@ -309,17 +281,18 @@ Tested against 10 real-world PDF documents with specific expectations designed t
 Key observations:
 - Two-stage architecture delivers the verdict in ~3s consistently across all document types
 - Strict matching works correctly across all test cases
-- Total time is higher than single-pass (~7.6s vs ~5.4s) but the UX is better because the user gets the answer in half the time
+- Blank/template forms correctly rejected when "completed" expected (#6, #10)
+- Cross-type mismatches correctly rejected (#2 W-2 vs pay stub, #5 wastewater vs electricity, #8 passport vs license)
 
 ## UI Design
 
 ### Brand
 
-- **Name:** Verity (Latin for "truth") — chosen for its distinctive, proper-name quality (like "Claude" or "Gemini")
-- **Display font:** Outfit (geometric sans-serif, AI/tech feel) — selected from 5 candidates compared side-by-side
+- **Name:** Verity (Latin for "truth")
+- **Display font:** Outfit (geometric sans-serif, AI/tech feel)
 - **Body font:** Inter
 - **Primary color:** Pacific Blue (#58a8c3)
-- **Palette:** Dust Grey (#e3d5d5), Gunmetal (#3d4146), Rosy Copper (#cd694e), Pacific Blue (#58a8c3), Glaucous (#6f81d9) — user-provided custom palette
+- **Palette:** Dust Grey (#e3d5d5), Gunmetal (#3d4146), Rosy Copper (#cd694e), Pacific Blue (#58a8c3), Glaucous (#6f81d9)
 - **Favicon:** Pacific Blue rounded square with white serif "V"
 
 ### Layout
@@ -327,25 +300,25 @@ Key observations:
 - **Single column** on small/medium screens, **two-column** on xl+ (1280px): input panel left, results right
 - Max width: `max-w-6xl` (1152px)
 - Two-column layout only activates once results exist
-- History section sits below the two-column grid — collapsible icon button on mobile, always visible on desktop
+- History sits below the main grid — collapsible icon button on mobile, always visible on desktop
 
 ### Components
 
-1. **Expectation input** — Text field with AI-powered ghost text completion (Tab to accept), dropdown with 4 AI suggestions (debounced 400ms), and 8 quick-pick badge chips (4 visible + expandable)
-2. **Upload zone** — Native `<button>` wrapping a drag-and-drop area with file icon + extension badge thumbnail (images show object URL preview). Uses `sr-only` hidden file input with `aria-label`.
-3. **Result card** — Status badge (Match/No Match/Uncertain), category badge, confidence + time with shadcn Tooltips. "Why" section with colored left border accent (SummarySection + FieldsSection extracted as sub-components). Fade-in + slide-up animation. Shows skeleton during field extraction.
-4. **Result skeleton** — Pulse loading placeholder matching result card layout, shown during initial LLM processing
-5. **Empty state** — "How it works" 3-step guide (Describe, Upload, Validate) shown before first validation
-6. **History list** — Session-persisted (survives refresh via `useSyncExternalStore`), entries are expandable. Collapsible on mobile with icon button, always visible on xl+.
-7. **Theme toggle** — Sun/Moon icon in header, light/dark via next-themes
-8. **Design doc page** — `/docs` renders this markdown at build time via `react-markdown`
-9. **Test suite page** — `/tests` runs 10 test documents with "Run All" dashboard
+1. **Expectation input** — Text field with ghost text completion (Tab to accept), AI suggestion dropdown (debounced 400ms), and 8 quick-pick badge chips (4 visible + expandable)
+2. **Upload zone** — Native `<button>` wrapping a drag-and-drop area with file icon + extension badge thumbnail
+3. **Result card** — Status badge (Match/No Match/Uncertain), category badge, confidence + time with Tooltips. "Why" section with colored left border accent. Summary and extracted fields as sub-components. Shows skeleton during field extraction.
+4. **Result skeleton** — Pulse loading placeholder shown during initial LLM processing
+5. **Empty state** — "How it works" 3-step guide (Describe, Upload, Validate)
+6. **History list** — Session-persisted, expandable entries. Collapsible on mobile, always visible on desktop.
+7. **Theme toggle** — Sun/Moon in header, light/dark via next-themes
+8. **Design doc page** — `/docs` renders this markdown at build time
+9. **Test suite page** — `/tests` runs 10 test documents with live pass/fail dashboard
 
 ### Design System (shadcn/ui)
 
-Primitives: Button, Input, Card, Badge, Label, Alert, Tooltip. All use semantic CSS variables that adapt to light/dark themes. Cursor pointer restored globally for buttons and badges (shadcn removed it by default).
+Primitives: Button, Input, Card, Badge, Label, Alert, Tooltip. All use semantic CSS variables that adapt to light/dark themes.
 
-Status colors use semantic tokens:
+Status colors:
 - Match: `text-success` / `bg-success/10`
 - No Match: `text-destructive` / `bg-destructive/10`
 - Uncertain: `text-warning` / `bg-warning/10`
@@ -354,16 +327,15 @@ Status colors use semantic tokens:
 
 | Error | User message | Code | Strategy |
 |-------|-------------|------|----------|
-| File > 5MB | "File exceeds 5MB limit" | `validation_error` | Client-side check + server validation |
+| File > 5MB | "File exceeds 5MB limit" | `validation_error` | Client + server validation |
 | Bad format | "Unsupported file type" | `validation_error` | Client MIME + server validation |
-| PDF > 3 pages | Truncated silently, badge shown | — | pdf-lib extracts first 3 pages |
-| LLM parse failure | Auto-retry once | — | Strip control chars (`\p{Cc}`), retry, then `parse_error` |
-| Empty LLM response | Auto-retry once | — | Guard in `cleanAndParse`, clear error message |
-| LLM timeout | "An unexpected error occurred" | `unknown` | SSE error event |
-| Field extraction failure | "Field extraction was not available" | — | Graceful degradation, verdict still shown |
+| PDF > 3 pages | Truncated, badge shown | — | pdf-lib extracts first 3 pages |
+| LLM parse failure | Auto-retry once | — | Control char stripping, then `parse_error` |
+| Empty LLM response | Auto-retry once | — | Guard + clear error message |
+| Field extraction failure | Graceful degradation | — | Verdict still shown, summary says "not available" |
 | Rate limit exceeded | "Too many requests" | `rate_limit` | 429 with Retry-After header |
-| API key issue | "AI service configuration error" | `provider_error` | Logged server-side |
-| Network error | Error alert with message | — | UI error state |
+| API key issue | "AI service config error" | `provider_error` | Logged server-side |
+| Network error | Error alert | — | UI error state |
 
 ## File Structure
 
@@ -371,59 +343,48 @@ Status colors use semantic tokens:
 doc-validator/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx              # Root layout, fonts (Inter + Outfit), providers
-│   │   ├── page.tsx                # Main page, two-column layout, SSE state management
+│   │   ├── layout.tsx              # Root layout, fonts, providers
+│   │   ├── page.tsx                # Main page, two-column layout, SSE state
 │   │   ├── globals.css             # Tailwind v4, shadcn theme, custom palette
-│   │   ├── icon.svg                # Favicon (Pacific Blue "V")
-│   │   ├── docs/
-│   │   │   ├── page.tsx            # Design doc server component
-│   │   │   └── markdown-content.tsx # Client-side markdown renderer
-│   │   ├── tests/
-│   │   │   ├── page.tsx            # Live test suite dashboard
-│   │   │   ├── actions.ts          # Server actions for running test cases
-│   │   │   └── test-cases.ts       # 10 test case definitions
+│   │   ├── icon.svg                # Favicon
+│   │   ├── docs/                   # Design doc page (server-rendered markdown)
+│   │   ├── tests/                  # Live test suite (server actions + dashboard)
 │   │   └── api/
-│   │       ├── validate/route.ts   # SSE streaming validation endpoint
+│   │       ├── validate/route.ts   # SSE streaming validation
 │   │       └── suggest/route.ts    # AI autocomplete (cached + rate limited)
 │   ├── components/
 │   │   ├── expectation-input.tsx   # Input + ghost text + dropdown + badges
-│   │   ├── upload-zone.tsx         # Native button drag-and-drop + file icon
+│   │   ├── upload-zone.tsx         # Drag-and-drop + file icon
 │   │   ├── file-thumbnail.tsx      # File icon with extension badge
-│   │   ├── result-card.tsx         # Two-stage result display (verdict + fields)
-│   │   ├── result-skeleton.tsx     # Loading skeleton placeholder
+│   │   ├── result-card.tsx         # Two-stage result display
+│   │   ├── result-skeleton.tsx     # Loading skeleton
 │   │   ├── history-list.tsx        # Collapsible session history
-│   │   ├── empty-state.tsx         # "How it works" first-time guide
-│   │   ├── theme-toggle.tsx        # Light/dark mode switcher
+│   │   ├── empty-state.tsx         # First-time guide
+│   │   ├── theme-toggle.tsx        # Light/dark switcher
 │   │   ├── providers.tsx           # ThemeProvider + QueryClient + TooltipProvider
-│   │   └── ui/                     # shadcn/ui primitives (7 components)
+│   │   └── ui/                     # shadcn/ui primitives
 │   ├── hooks/
-│   │   ├── use-validate.ts         # Custom SSE stream hook (verdict + fields state)
-│   │   └── use-suggestions.ts      # useQuery with 400ms debounce for /api/suggest
+│   │   ├── use-validate.ts         # SSE stream hook (verdict + fields)
+│   │   └── use-suggestions.ts      # Debounced autocomplete query
 │   ├── lib/
-│   │   ├── schemas.ts              # Zod v4 schemas (classify + extract + combined)
-│   │   ├── api-client.ts           # SSE stream consumer (parseSseBlock → readSseStream)
-│   │   ├── sanitize.ts             # Input sanitization (Unicode \p{Cc}, length limit)
-│   │   ├── rate-limit.ts           # IP-based sliding window rate limiter
-│   │   ├── utils.ts                # cn() helper (tailwind-merge + clsx)
+│   │   ├── schemas.ts              # Zod schemas (classify + extract + combined)
+│   │   ├── api-client.ts           # SSE stream consumer
+│   │   ├── sanitize.ts             # Input sanitization
+│   │   ├── rate-limit.ts           # Sliding window rate limiter
+│   │   ├── utils.ts                # cn() helper
 │   │   ├── llm/
-│   │   │   ├── types.ts            # LLMProvider + DocumentPart interfaces
-│   │   │   ├── constants.ts        # Shared GEMINI_MODEL + client factory
+│   │   │   ├── types.ts            # LLMProvider interface
+│   │   │   ├── constants.ts        # Shared model name + client factory
 │   │   │   ├── provider.ts         # Provider factory
-│   │   │   ├── gemini-provider.ts  # Gemini 2.0 Flash with retry (classify + extract + validate)
-│   │   │   └── prompt.ts           # Three prompts: classify, extract, combined (with injection defense)
+│   │   │   ├── gemini-provider.ts  # Gemini with retry (classify + extract + validate)
+│   │   │   └── prompt.ts           # Prompts with injection defense
 │   │   └── document/
-│   │       ├── image-processor.ts  # Resize to 768px JPEG via sharp
-│   │       └── pdf-processor.ts    # pdf-lib page count + truncation to 3 pages
-│   └── lib/__tests__/              # Vitest tests (schemas, prompt, image processor)
-├── test-docs/                      # Generated test PDFs (lease, lab report, NDA, etc.)
-├── test-docs/real/                 # Real-world PDFs (IRS forms, invoices, passports)
+│   │       ├── image-processor.ts  # JPEG resize via sharp
+│   │       └── pdf-processor.ts    # Page count + truncation via pdf-lib
+│   └── lib/__tests__/              # Vitest tests
+├── test-docs/                      # Generated test PDFs
+├── test-docs/real/                 # Real-world PDFs
 ├── docs/design.md                  # This document
-├── .env.local                      # GEMINI_API_KEY
-├── .npmrc                          # Force public npm registry (overrides corporate registry)
-├── components.json                 # shadcn/ui config
-├── next.config.ts                  # serverExternalPackages for sharp
-├── vitest.config.ts                # Test config with jsdom + path aliases
-├── tsconfig.json
 └── package.json
 ```
 
@@ -432,30 +393,28 @@ doc-validator/
 - **Platform:** Vercel
 - **Domain:** verity.joaog.space (DNS via Vercel nameservers)
 - **Environment variables:** `GEMINI_API_KEY` (set via `vercel env`)
-- **Build:** `npm run build` via Vercel's Next.js integration
-- **Deploy:** `vercel --prod` from CLI
-- **Note:** `.npmrc` forces public npm registry to avoid Vercel build failures from corporate registry tokens in the global config.
+- **Build/Deploy:** `vercel --prod` from CLI
 
 ## Scope
 
 **Built:**
 - Two-stage streaming validation (verdict in ~3s, fields fade in after)
-- Single document upload (PDF, JPG, PNG, WebP) with file icon preview
+- Document upload (PDF, JPG, PNG, WebP) with file icon preview
 - Free-text expectation with AI autocomplete (ghost text + dropdown + cached suggestions)
 - Quick-pick badge chips (8 presets, 4 visible + expandable)
 - Strict classification and field extraction via Gemini Flash with automatic retry
 - Match/No Match/Uncertain verdicts with explanations
 - PDF truncation to 3 pages for oversized documents
-- Expandable session history (persists across refresh, collapsible on mobile)
+- Session history (persists across refresh, collapsible on mobile)
 - Light/dark theme with custom 5-color palette
 - Responsive two-column layout on large screens
 - Loading skeleton, empty state, transitions
 - Rate limiting, input sanitization, prompt injection defense
-- Typed error codes for debugging
+- Typed error codes
 - Design doc page at `/docs`
 - Live test suite at `/tests` with 10 real-world documents
-- Deployed to production on custom domain
 - Accessible: native button elements, aria labels, screen reader support
+- Deployed to production on custom domain
 
 **Out of scope (future):**
 - Batch upload / multi-document comparison
@@ -464,4 +423,4 @@ doc-validator/
 - Webhook notifications for automated pipelines
 - Custom category training / fine-tuning
 - OCR fallback pipeline for degraded scans
-- Vercel KV / Upstash Redis for production-grade rate limiting
+- Production-grade rate limiting (Upstash Redis / Vercel KV)
