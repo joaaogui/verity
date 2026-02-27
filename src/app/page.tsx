@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Loader2, FileSearch, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UploadZone } from "@/components/upload-zone";
@@ -49,12 +49,9 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-12">
       <div className="mb-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileSearch className="size-7 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Verity
-            </h1>
-          </div>
+          <h1 className="font-display text-3xl tracking-tight text-foreground">
+            Verity
+          </h1>
           <ThemeToggle />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
