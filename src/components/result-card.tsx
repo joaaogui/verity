@@ -125,11 +125,6 @@ export function ResultCard({ verdict, fields, isExtractingFields }: ResultCardPr
                 </div>
               ))}
             </div>
-            {fields && (
-              <p className="mt-2 text-right text-[10px] text-muted-foreground/40 tabular-nums">
-                Total: {(fields.processingTimeMs / 1000).toFixed(1)}s
-              </p>
-            )}
           </div>
         ) : isExtractingFields ? (
           <div className="space-y-2">
