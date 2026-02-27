@@ -52,13 +52,13 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <FileSearch className="size-7 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              DocValidator
+              Verity
             </h1>
           </div>
           <ThemeToggle />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Upload a document, describe what you expect, get instant verification.
+          AI-powered document validation. Describe what you expect, upload, verify.
         </p>
       </div>
 

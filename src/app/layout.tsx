@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DocValidator",
-  description: "Upload a document and validate it in seconds",
+  title: "Verity",
+  description: "AI-powered document validation in seconds",
 };
 
 export default function RootLayout({
