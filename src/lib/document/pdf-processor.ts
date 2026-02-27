@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse");
 import { MAX_PAGES } from "../schemas";
 
 export interface ProcessedDocument {
@@ -9,11 +7,14 @@ export interface ProcessedDocument {
   truncated: boolean;
 }
 
+const PAGE_MARKER = /\/Type\s*\/Page(?!s)/g;
+
 export async function processPdf(
   pdfBuffer: Buffer
 ): Promise<{ pageCount: number; truncated: boolean }> {
-  const data = await pdfParse(pdfBuffer);
-  const pageCount = data.numpages;
+  const raw = pdfBuffer.toString("latin1");
+  const matches = raw.match(PAGE_MARKER);
+  const pageCount = matches ? matches.length : 1;
   return {
     pageCount: Math.min(pageCount, MAX_PAGES),
     truncated: pageCount > MAX_PAGES,

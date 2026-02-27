@@ -3,6 +3,7 @@ import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/li
 import { getLLMProvider } from "@/lib/llm/provider";
 import { resizeImageForLLM } from "@/lib/document/image-processor";
 import { processPdf } from "@/lib/document/pdf-processor";
+import type { DocumentPart } from "@/lib/llm/types";
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -41,20 +42,20 @@ export async function POST(request: NextRequest) {
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    let images: Buffer[];
+    let parts: DocumentPart[];
     let truncated = false;
 
     if (file.type === "application/pdf") {
       const pdfInfo = await processPdf(fileBuffer);
       truncated = pdfInfo.truncated;
-      images = [fileBuffer];
+      parts = [{ buffer: fileBuffer, mimeType: "application/pdf" }];
     } else {
       const resized = await resizeImageForLLM(fileBuffer);
-      images = [resized];
+      parts = [{ buffer: resized, mimeType: "image/png" }];
     }
 
     const provider = getLLMProvider();
-    const result = await provider.validateDocument(images, expectation.trim());
+    const result = await provider.validateDocument(parts, expectation.trim());
 
     const processingTimeMs = Date.now() - startTime;
 

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { LLMProvider } from "./types";
+import type { DocumentPart, LLMProvider } from "./types";
 import type { ValidatorResponse } from "../schemas";
 import { validatorResponseSchema } from "../schemas";
 import { buildPrompt } from "./prompt";
@@ -13,15 +13,15 @@ export class GeminiProvider implements LLMProvider {
   }
 
   async validateDocument(
-    images: Buffer[],
+    parts: DocumentPart[],
     expectation: string
   ): Promise<ValidatorResponse> {
     const prompt = buildPrompt(expectation);
 
-    const imageParts = images.map((img) => ({
+    const dataParts = parts.map((part) => ({
       inlineData: {
-        mimeType: "image/png" as const,
-        data: img.toString("base64"),
+        mimeType: part.mimeType,
+        data: part.buffer.toString("base64"),
       },
     }));
 
@@ -30,7 +30,7 @@ export class GeminiProvider implements LLMProvider {
       contents: [
         {
           role: "user",
-          parts: [...imageParts, { text: prompt }],
+          parts: [...dataParts, { text: prompt }],
         },
       ],
       config: {

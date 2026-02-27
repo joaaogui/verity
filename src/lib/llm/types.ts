@@ -1,8 +1,13 @@
 import type { ValidatorResponse } from "../schemas";
 
+export interface DocumentPart {
+  buffer: Buffer;
+  mimeType: string;
+}
+
 export interface LLMProvider {
   validateDocument(
-    images: Buffer[],
+    parts: DocumentPart[],
     expectation: string
   ): Promise<ValidatorResponse>;
 }
