@@ -155,8 +155,6 @@ export default function Home() {
           </div>
 
           {hasNoResults && history.length === 0 && <EmptyState />}
-
-          <HistoryList entries={history} />
         </div>
 
         <div className="mt-4 xl:mt-0">
@@ -179,6 +177,10 @@ export default function Home() {
             />
           )}
         </div>
+      </div>
+
+      <div className="mt-6">
+        <HistoryList entries={history} />
       </div>
     </main>
   );
