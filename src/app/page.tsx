@@ -18,37 +18,24 @@ const HISTORY_KEY = "verity-history";
 const emptySubscribe = () => () => {};
 const getIsMac = () => /Mac|iPhone|iPad/.test(navigator.userAgent);
 const getFalse = () => false;
-
-function loadHistory(): HistoryEntry[] {
-  if (globalThis.window === undefined) return [];
-  try {
-    const raw = sessionStorage.getItem(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+const getEmptyArray = () => "[]";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [expectation, setExpectation] = useState("");
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const didInit = useRef(false);
+  const getStoredHistory = useCallback(() => sessionStorage.getItem(HISTORY_KEY) ?? "[]", []);
+  const storedHistoryJson = useSyncExternalStore(emptySubscribe, getStoredHistory, getEmptyArray);
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    try { return JSON.parse(storedHistoryJson); } catch { return []; }
+  });
   const submitRef = useRef<() => void>(null);
 
   const isMac = useSyncExternalStore(emptySubscribe, getIsMac, getFalse);
 
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    const stored = loadHistory();
-    if (stored.length > 0) setHistory(stored);
+  const persistHistory = useCallback((entries: HistoryEntry[]) => {
+    setHistory(entries);
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
   }, []);
-
-  useEffect(() => {
-    if (!didInit.current) return;
-    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  }, [history]);
 
   const { verdict, fields, isPending, isExtractingFields, error, mutate } = useValidate();
 
@@ -59,7 +46,7 @@ export default function Home() {
       { file, expectation: expectation.trim() },
       {
         onSuccess: (verdictResult) => {
-          setHistory((prev) => [
+          persistHistory([
             {
               id: crypto.randomUUID(),
               fileName: file.name,
@@ -70,12 +57,12 @@ export default function Home() {
               },
               timestamp: Date.now(),
             },
-            ...prev,
+            ...history,
           ]);
         },
       }
     );
-  }, [file, expectation, mutate]);
+  }, [file, expectation, mutate, history, persistHistory]);
 
   useEffect(() => {
     submitRef.current = handleSubmit;
