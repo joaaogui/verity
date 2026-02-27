@@ -46,8 +46,8 @@ export default function Home() {
   const hasResults = mutation.data || mutation.isPending || mutation.error;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <div className="mb-5 flex items-center justify-between">
+    <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+      <div className="mb-10 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl tracking-tight text-foreground">
             Verity
