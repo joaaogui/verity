@@ -28,12 +28,14 @@ export async function GET(request: NextRequest) {
           role: "user",
           parts: [
             {
-              text: `Complete this document description into 4 different specific document expectations a user might type when uploading a document for validation. The user has typed so far: "${q}"
+              text: `You are helping an employee who validates documents submitted by customers. They are typing what document they expect to receive. Complete their partial input into 4 specific document descriptions.
 
-Return a JSON array of exactly 4 strings. Each should be a complete, specific document description (10-20 words). Make them diverse.
+The employee has typed so far: "${q}"
 
-Example: if the user typed "A recent", return:
-["A recent electricity bill from the last 3 months","A recent bank statement showing account activity","A recent medical prescription or lab report","A recent pay stub or salary statement"]`,
+Return a JSON array of exactly 4 strings. Each should be a complete, specific expectation an employee would set when checking a submitted document (8-15 words). Focus on document types commonly submitted for verification: utility bills, bank statements, IDs, contracts, tax forms, medical records, insurance documents, pay stubs, etc.
+
+Example: if typed "A recent", return:
+["A recent utility bill showing the customer's current address","A recent bank statement from within the last 90 days","A recent pay stub confirming employment and salary","A recent medical lab report with patient details"]`,
             },
           ],
         },

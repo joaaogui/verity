@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useSuggestions } from "@/hooks/use-suggestions";
 
-const SUGGESTIONS = [
+const QUICK_PICKS = [
   "A recent electricity or gas utility bill",
   "A bank statement from the last 3 months",
   "A commercial invoice with line items",
@@ -34,15 +33,32 @@ export function ExpectationInput({
   const [expanded, setExpanded] = useState(false);
   const [focused, setFocused] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const { suggestions, isLoading } = useSuggestions(value);
+
+  const ghostText = useMemo(() => {
+    if (!focused || value.length < 3 || suggestions.length === 0) return null;
+    const first = suggestions[0];
+    if (first.toLowerCase().startsWith(value.toLowerCase())) {
+      return first;
+    }
+    return null;
+  }, [focused, value, suggestions]);
+
   const showDropdown = focused && value.length >= 3 && suggestions.length > 0;
 
   useEffect(() => {
     setHighlightIndex(-1);
   }, [suggestions]);
+
+  const acceptGhost = useCallback(() => {
+    if (ghostText) {
+      onChange(ghostText);
+      setHighlightIndex(-1);
+    }
+  }, [ghostText, onChange]);
 
   const selectSuggestion = useCallback(
     (s: string) => {
@@ -55,6 +71,12 @@ export function ExpectationInput({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (e.key === "Tab" && ghostText && !e.shiftKey) {
+        e.preventDefault();
+        acceptGhost();
+        return;
+      }
+
       if (!showDropdown) return;
 
       if (e.key === "ArrowDown") {
@@ -70,7 +92,7 @@ export function ExpectationInput({
         setFocused(false);
       }
     },
-    [showDropdown, suggestions, highlightIndex, selectSuggestion]
+    [showDropdown, suggestions, highlightIndex, selectSuggestion, ghostText, acceptGhost]
   );
 
   const handleFocus = useCallback(() => {
@@ -82,13 +104,31 @@ export function ExpectationInput({
     blurTimeoutRef.current = setTimeout(() => setFocused(false), 150);
   }, []);
 
-  const visible = expanded ? SUGGESTIONS : SUGGESTIONS.slice(0, VISIBLE_COUNT);
+  const visible = expanded ? QUICK_PICKS : QUICK_PICKS.slice(0, VISIBLE_COUNT);
 
   return (
-    <div className="space-y-3" ref={containerRef}>
+    <div className="space-y-3">
       <Label htmlFor="expectation">What document do you expect?</Label>
       <div className="relative">
-        <Input
+        {ghostText && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 flex items-center overflow-hidden"
+          >
+            <span className="truncate px-3 text-sm text-transparent">
+              {value}
+            </span>
+            <span
+              className="truncate text-sm text-muted-foreground/40"
+              onClick={acceptGhost}
+            >
+              {ghostText.slice(value.length)}
+            </span>
+          </div>
+        )}
+
+        <input
+          ref={inputRef}
           id="expectation"
           type="text"
           value={value}
@@ -97,13 +137,24 @@ export function ExpectationInput({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder='e.g. "A recent electricity bill from ConEd"'
+          placeholder='e.g. "A utility bill with the customer address"'
           autoComplete="off"
-          className={isLoading && value.length >= 3 ? "pr-9" : ""}
+          className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
+            isLoading && value.length >= 3 ? "pr-9" : ""
+          }`}
         />
+
         {isLoading && value.length >= 3 && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {ghostText && focused && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              Tab
+            </kbd>
           </div>
         )}
 
@@ -132,6 +183,7 @@ export function ExpectationInput({
           </div>
         )}
       </div>
+
       <div className="flex flex-wrap items-center gap-2">
         {visible.map((suggestion) => (
           <Badge
@@ -143,7 +195,7 @@ export function ExpectationInput({
             {suggestion}
           </Badge>
         ))}
-        {SUGGESTIONS.length > VISIBLE_COUNT && (
+        {QUICK_PICKS.length > VISIBLE_COUNT && (
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
@@ -155,7 +207,7 @@ export function ExpectationInput({
               </>
             ) : (
               <>
-                +{SUGGESTIONS.length - VISIBLE_COUNT} more{" "}
+                +{QUICK_PICKS.length - VISIBLE_COUNT} more{" "}
                 <ChevronDown className="size-3" />
               </>
             )}
