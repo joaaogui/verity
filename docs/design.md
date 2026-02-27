@@ -13,16 +13,18 @@ A web application for employees validating customer-submitted documents. Upload 
 Single Next.js 16 (App Router) project handling both UI and backend logic, deployed on Vercel.
 
 ```
-┌──────────────────────────────────────────────┐
-│               Next.js App (Vercel)           │
-│                                              │
-│  Frontend (React + shadcn/ui)                │
-│       │ fetch('/api/validate') [SSE stream]  │
-│       │ fetch('/api/suggest')  [cached]      │
-│  API Routes                                  │
-│       │ Two-stage LLM calls                  │
-│  LLM Adapter Layer (Gemini 2.0 Flash)        │
-└──────────────────────────────────────────────┘
+Next.js App (Vercel)
+  |
+  |-- Frontend (React + shadcn/ui)
+  |     |
+  |     |-- fetch('/api/validate') [SSE stream]
+  |     |-- fetch('/api/suggest')  [cached]
+  |
+  |-- API Routes
+  |     |
+  |     |-- Two-stage LLM calls
+  |
+  |-- LLM Adapter Layer (Gemini 2.0 Flash)
 ```
 
 ### Tech Stack
@@ -110,20 +112,18 @@ The validation is split into two sequential LLM calls, streamed to the frontend 
 
 ```
 User clicks "Validate"
-    │
-    ▼ ~3s
-┌─────────────────────────────────┐
-│ VERDICT: Match/No Match (shown) │  ← User sees the answer here
-│ Category, Confidence, Why       │
-│ [Extracting fields... skeleton] │
-└─────────────────────────────────┘
-    │
-    ▼ ~4s more
-┌─────────────────────────────────┐
-│ VERDICT (already shown)         │
-│ Summary (fades in)              │
-│ Extracted Fields (fades in)     │  ← Fields populate progressively
-└─────────────────────────────────┘
+  |
+  |  ~3s
+  v
+  VERDICT: Match/No Match        <-- User sees the answer here
+  Category, Confidence, Why
+  [Extracting fields... skeleton]
+  |
+  |  ~4s more
+  v
+  VERDICT (already shown)
+  Summary (fades in)
+  Extracted Fields (fades in)    <-- Fields populate progressively
 ```
 
 PDFs are sent as `application/pdf` (Gemini handles natively). Images are resized to 768px width JPEG. PDFs over 3 pages are truncated to the first 3 pages using `pdf-lib`.
