@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
     let truncated = false;
 
     if (file.type === "application/pdf") {
-      const pdfInfo = await processPdf(fileBuffer);
-      truncated = pdfInfo.truncated;
-      parts = [{ buffer: fileBuffer, mimeType: "application/pdf" }];
+      const pdfResult = await processPdf(fileBuffer);
+      truncated = pdfResult.truncated;
+      parts = [{ buffer: pdfResult.buffer, mimeType: "application/pdf" }];
     } else {
       const resized = await resizeImageForLLM(fileBuffer);
       parts = [{ buffer: resized, mimeType: "image/jpeg" }];
