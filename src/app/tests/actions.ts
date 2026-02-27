@@ -55,7 +55,7 @@ export async function runTestCase(
     }
 
     const provider = getLLMProvider();
-    const result = await provider.validateDocument(parts, expectation);
+    const result = await provider.classifyDocument(parts, expectation);
     const processingTimeMs = Date.now() - startTime;
 
     return {
