@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ interface UploadZoneProps {
 export function UploadZone({ file, onFileSelect, disabled }: Readonly<UploadZoneProps>) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateAndSet = useCallback(
     (f: File) => {
@@ -81,26 +82,21 @@ export function UploadZone({ file, onFileSelect, disabled }: Readonly<UploadZone
 
   return (
     <div className="space-y-2">
-      <div
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            (e.currentTarget.querySelector("input[type=file]") as HTMLInputElement)?.click();
-          }
-        }}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => fileInputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
           if (!disabled) setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`relative flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-6 transition-colors ${
+        className={`relative flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-6 transition-colors ${
           dragOver
             ? "border-primary bg-primary/5"
             : "border-border bg-muted/30 hover:border-muted-foreground/50"
-        } ${disabled ? "pointer-events-none opacity-50" : ""}`}
+        } disabled:pointer-events-none disabled:opacity-50`}
       >
         <Upload className="mb-2 size-6 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
@@ -111,14 +107,15 @@ export function UploadZone({ file, onFileSelect, disabled }: Readonly<UploadZone
           PDF, JPG, PNG, WebP &middot; Max {MAX_FILE_SIZE_MB}MB
         </p>
         <input
+          ref={fileInputRef}
           type="file"
           aria-label="Upload a document for validation"
           accept={ACCEPTED_FILE_TYPES.join(",")}
           onChange={handleChange}
           disabled={disabled}
-          className="absolute inset-0 cursor-pointer opacity-0"
+          className="sr-only"
         />
-      </div>
+      </button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
