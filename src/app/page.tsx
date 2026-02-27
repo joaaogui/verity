@@ -49,7 +49,7 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
       <div className="mb-10 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl tracking-tight text-foreground">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
             Verity
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">

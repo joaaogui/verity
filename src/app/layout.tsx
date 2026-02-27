@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, DM_Serif_Display } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -8,8 +8,7 @@ const inter = Inter({
   variable: "--font-sans",
 });
 
-const dmSerif = DM_Serif_Display({
-  weight: "400",
+const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-display",
 });
@@ -26,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${dmSerif.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
