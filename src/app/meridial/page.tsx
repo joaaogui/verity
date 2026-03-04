@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { IBM_Plex_Mono } from "next/font/google";
 import {
   ArrowLeft,
   ArrowRight,
@@ -9,8 +10,18 @@ import {
   FileText,
   Loader2,
   Shield,
+  Upload,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono-accent",
+});
+
+const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const FONT_MONO = "var(--font-mono-accent), 'SF Mono', 'Roboto Mono', monospace";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -36,6 +47,7 @@ const STATUS_MESSAGES = [
   "Running OCR analysis",
   "Validating information",
   "Verifying document authenticity",
+  "Checking for fraud indicators",
   "Almost done",
 ];
 
@@ -284,9 +296,12 @@ function StepCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="flex w-full max-w-[540px] min-h-[560px] flex-col rounded-lg bg-white shadow-2xl"
+      className="flex w-full max-w-[540px] min-h-[720px] flex-col rounded-lg bg-white shadow-2xl"
     >
-      <div className="flex items-center justify-between border-b border-gray-100 px-7 py-3">
+      <div
+        className="flex items-center justify-between border-b border-gray-100 px-7 py-2.5"
+        style={{ fontFamily: FONT_MONO }}
+      >
         <span className="text-[10px] font-medium tracking-[0.15em] text-gray-400 uppercase">
           {STEP_LABELS[step]}
         </span>
@@ -324,6 +339,7 @@ function CookieBanner({ onAgree }: Readonly<{ onAgree: () => void }>) {
       <button
         onClick={onAgree}
         className="shrink-0 rounded-full bg-[#5c0e0e] px-5 py-2 text-[11px] font-semibold tracking-widest text-white uppercase transition-colors hover:bg-[#7a1616]"
+        style={{ fontFamily: FONT_MONO }}
       >
         I AGREE
       </button>
@@ -336,10 +352,7 @@ function CookieBanner({ onAgree }: Readonly<{ onAgree: () => void }>) {
 function WelcomeStep({ onUpload }: Readonly<{ onUpload: () => void }>) {
   return (
     <>
-      <h2
-        className="text-[28px] leading-tight font-semibold text-gray-900"
-        style={{ fontFamily: "var(--font-display), sans-serif" }}
-      >
+      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
         Welcome to Invisible Marketplace
       </h2>
       <p className="mt-3 text-[13px] leading-relaxed text-gray-500">
@@ -350,10 +363,94 @@ function WelcomeStep({ onUpload }: Readonly<{ onUpload: () => void }>) {
       <button
         onClick={onUpload}
         className="flex w-full items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[11px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616]"
+        style={{ fontFamily: FONT_MONO }}
       >
         UPLOAD DOCUMENT
         <ArrowRight className="size-4" />
       </button>
+    </>
+  );
+}
+
+/* ─────────────────────── Step 2: Upload Document ─────────────────────── */
+
+function UploadStep({
+  onBack,
+  onFileSelect,
+}: Readonly<{
+  onBack: () => void;
+  onFileSelect: (file: File) => void;
+}>) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    setTimeout(() => onFileSelect(file), 1200);
+  };
+
+  return (
+    <>
+      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
+        Upload Document
+      </h2>
+      <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+        Upload your document. We&apos;ll analyze it using our document
+        verification API.
+      </p>
+
+      <span
+        className="mt-6 text-[9px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+        style={{ fontFamily: FONT_MONO }}
+      >
+        Document
+      </span>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        onChange={handleChange}
+      />
+
+      {selectedFile ? (
+        <div className="mt-2 flex flex-1 flex-col items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 p-8">
+          <div className="relative">
+            <FileText className="size-10 text-emerald-600" />
+            <CheckCircle2 className="absolute -right-1 -top-1 size-4 rounded-full bg-white text-emerald-500" />
+          </div>
+          <p className="mt-3 text-[13px] font-medium text-gray-900">
+            {selectedFile.name}
+          </p>
+          <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+            <CheckCircle2 className="size-3" /> Verified
+          </span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="mt-2 flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-200 transition-colors hover:border-gray-300 hover:bg-gray-50"
+        >
+          <Upload className="size-5 text-gray-400" />
+          <p className="text-[13px] text-gray-600">Click to upload</p>
+          <p className="text-[11px] text-gray-400">
+            PDF, JPG or PNG up to 10MB
+          </p>
+        </button>
+      )}
+
+      <div className="mt-6">
+        <button
+          onClick={onBack}
+          className="flex size-10 items-center justify-center rounded-md border border-gray-200 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
+        >
+          <ArrowLeft className="size-4" />
+        </button>
+      </div>
     </>
   );
 }
@@ -375,10 +472,7 @@ function AnalyzingStep() {
       <div className="mb-4">
         <Loader2 className="size-6 animate-spin text-gray-400" />
       </div>
-      <h2
-        className="text-[28px] leading-tight font-semibold text-gray-900"
-        style={{ fontFamily: "var(--font-display), sans-serif" }}
-      >
+      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
         Analyzing document
       </h2>
       <div className="flex-1" />
@@ -411,7 +505,10 @@ function AddressField({
 }>) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[9px] font-medium tracking-[0.15em] text-gray-400 uppercase">
+      <label
+        className="text-[9px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+        style={{ fontFamily: FONT_MONO }}
+      >
         {label}
       </label>
       <input
@@ -419,7 +516,6 @@ function AddressField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full border-b border-gray-200 bg-transparent pb-2 text-[14px] text-gray-900 outline-none transition-colors focus:border-[#5c0e0e]"
-        style={{ fontFamily: "var(--font-sans), sans-serif" }}
       />
     </div>
   );
@@ -440,10 +536,7 @@ function VerificationStep({
 
   return (
     <>
-      <h2
-        className="text-[28px] leading-tight font-semibold text-gray-900"
-        style={{ fontFamily: "var(--font-display), sans-serif" }}
-      >
+      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
         Confirm your details{address.fullName ? `, ${address.fullName}` : ""}
       </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
@@ -501,6 +594,7 @@ function VerificationStep({
           onClick={onContinue}
           disabled={!isValid}
           className="flex flex-1 items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[11px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616] disabled:opacity-40"
+          style={{ fontFamily: FONT_MONO }}
         >
           CONTINUE
           <ArrowRight className="size-4" />
@@ -519,10 +613,7 @@ function CompleteStep() {
   return (
     <>
       <CheckCircle2 className="size-7 text-gray-700" />
-      <h2
-        className="mt-3 text-[28px] leading-tight font-semibold text-gray-900"
-        style={{ fontFamily: "var(--font-display), sans-serif" }}
-      >
+      <h2 className="mt-3 text-[28px] leading-tight font-bold text-gray-900">
         Verification Complete
       </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
@@ -588,21 +679,12 @@ export default function MeridialPage() {
   const [step, setStep] = useState<Step>(1);
   const [showConsent, setShowConsent] = useState(true);
   const [address, setAddress] = useState<AddressData>(emptyAddress);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAgreeConsent = useCallback(() => {
     setShowConsent(false);
   }, []);
 
-  const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleFileSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Immediately go to the analyzing step once a file is chosen
+  const handleFileSelect = useCallback(async (file: File) => {
     setStep(3);
 
     try {
@@ -633,64 +715,67 @@ export default function MeridialPage() {
   }, []);
 
   return (
-    <div className="relative flex min-h-screen flex-col font-sans">
+    <div
+      className={`relative flex min-h-screen flex-col ${ibmPlexMono.variable}`}
+      style={{ fontFamily: FONT_BODY }}
+    >
       <FluidBackground />
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
-        className="hidden"
-        onChange={handleFileSelected}
-      />
-
-      {/* Header */}
-      <header className="relative z-10 mx-auto w-full max-w-[540px] px-4 pt-6">
-        <h1
-          className="text-[26px] font-semibold tracking-wide text-white"
-          style={{ fontFamily: "var(--font-display), serif" }}
-        >
-          Meridial
-        </h1>
-        <p className="mt-0.5 text-[10px] tracking-[0.12em] text-white/50">
-          by Invisible
-        </p>
-      </header>
 
       {/* Card Area */}
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4">
-        <AnimatePresence mode="wait">
-          {step === 1 && (
-            <StepCard step={1}>
-              <WelcomeStep onUpload={handleUploadClick} />
-            </StepCard>
-          )}
-          {step === 3 && (
-            <StepCard step={3}>
-              <AnalyzingStep />
-            </StepCard>
-          )}
-          {step === 4 && (
-            <StepCard step={4}>
-              <VerificationStep
-                address={address}
-                onChange={setAddress}
-                onBack={() => setStep(1)}
-                onContinue={() => setStep(5)}
-              />
-            </StepCard>
-          )}
-          {step === 5 && (
-            <StepCard step={5}>
-              <CompleteStep />
-            </StepCard>
-          )}
-        </AnimatePresence>
+        <div className="w-full max-w-[540px]">
+          <div className="mb-2 px-1">
+            <h1
+              className="text-[26px] font-bold tracking-wide text-white"
+              style={{ fontFamily: "var(--font-display), serif" }}
+            >
+              Meridial
+            </h1>
+            <p className="mt-0.5 text-[10px] tracking-[0.12em] text-white/50">
+              by Invisible
+            </p>
+          </div>
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <StepCard step={1}>
+                <WelcomeStep onUpload={() => setStep(2)} />
+              </StepCard>
+            )}
+            {step === 2 && (
+              <StepCard step={2}>
+                <UploadStep
+                  onBack={() => setStep(1)}
+                  onFileSelect={handleFileSelect}
+                />
+              </StepCard>
+            )}
+            {step === 3 && (
+              <StepCard step={3}>
+                <AnalyzingStep />
+              </StepCard>
+            )}
+            {step === 4 && (
+              <StepCard step={4}>
+                <VerificationStep
+                  address={address}
+                  onChange={setAddress}
+                  onBack={() => setStep(1)}
+                  onContinue={() => setStep(5)}
+                />
+              </StepCard>
+            )}
+            {step === 5 && (
+              <StepCard step={5}>
+                <CompleteStep />
+              </StepCard>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 pb-6 text-center">
-        <div className="flex items-center justify-center gap-6 text-[9px] font-medium tracking-[0.15em] text-white/30 uppercase">
+      <footer className="relative z-10 pb-6 text-center" style={{ fontFamily: FONT_MONO }}>
+        <div className="flex items-center justify-center gap-6 text-[11px] font-medium tracking-[0.15em] text-white/30 uppercase">
           <span className="cursor-pointer transition-colors hover:text-white/50">
             Privacy Policy
           </span>
@@ -698,10 +783,22 @@ export default function MeridialPage() {
             Terms of Use
           </span>
         </div>
-        <p className="mt-2 text-[8px] tracking-[0.12em] text-white/20 uppercase">
+        <p className="mt-2 text-[9px] tracking-[0.12em] text-white/20 uppercase">
           All Rights Reserved &middot; Invisible Marketplace
         </p>
       </footer>
+
+      {/* Blur overlay while cookie consent is showing */}
+      <AnimatePresence>
+        {showConsent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 backdrop-blur-md bg-black/10"
+          />
+        )}
+      </AnimatePresence>
 
       {/* Cookie Banner */}
       <AnimatePresence>
