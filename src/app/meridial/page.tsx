@@ -284,7 +284,7 @@ function StepCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="w-full max-w-[540px] rounded-lg bg-white shadow-2xl"
+      className="flex w-full max-w-[540px] min-h-[560px] flex-col rounded-lg bg-white shadow-2xl"
     >
       <div className="flex items-center justify-between border-b border-gray-100 px-7 py-3">
         <span className="text-[10px] font-medium tracking-[0.15em] text-gray-400 uppercase">
@@ -294,7 +294,7 @@ function StepCard({
           STEP {step}/5
         </span>
       </div>
-      <div className="px-7 py-6">{children}</div>
+      <div className="flex flex-1 flex-col px-7 py-6">{children}</div>
     </motion.div>
   );
 }
@@ -346,7 +346,7 @@ function WelcomeStep({ onUpload }: Readonly<{ onUpload: () => void }>) {
         Verify your address. We need your address to verify you&apos;re a real
         person, to collect your documents.
       </p>
-      <div className="mt-48" />
+      <div className="flex-1" />
       <button
         onClick={onUpload}
         className="flex w-full items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[11px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616]"
@@ -381,7 +381,7 @@ function AnalyzingStep() {
       >
         Analyzing document
       </h2>
-      <div className="mt-52" />
+      <div className="flex-1" />
       <AnimatePresence mode="wait">
         <motion.p
           key={statusIndex}
@@ -645,7 +645,7 @@ export default function MeridialPage() {
       />
 
       {/* Header */}
-      <header className="relative z-10 pt-10 text-center">
+      <header className="relative z-10 mx-auto w-full max-w-[540px] px-4 pt-6">
         <h1
           className="text-[26px] font-semibold tracking-wide text-white"
           style={{ fontFamily: "var(--font-display), serif" }}
@@ -658,7 +658,7 @@ export default function MeridialPage() {
       </header>
 
       {/* Card Area */}
-      <main className="relative z-10 flex flex-1 items-start justify-center px-4 pt-4 pb-28">
+      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <StepCard step={1}>
