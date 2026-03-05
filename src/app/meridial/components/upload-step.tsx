@@ -1,0 +1,92 @@
+"use client";
+
+import {
+  ArrowLeft,
+  CheckCircle2,
+  FileText,
+  Upload,
+} from "lucide-react";
+import { useRef, useState } from "react";
+
+import { FONT_HEADING, FONT_MONO } from "../constants";
+
+export function UploadStep({
+  onBack,
+  onFileSelect,
+}: Readonly<{
+  onBack: () => void;
+  onFileSelect: (file: File) => void;
+}>) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    setTimeout(() => onFileSelect(file), 1200);
+  };
+
+  return (
+    <>
+      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
+        Upload Document
+      </h2>
+      <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+        Upload your document. We&apos;ll analyze it using our document
+        verification API.
+      </p>
+
+      <span
+        className="mt-6 text-[11px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+        style={{ fontFamily: FONT_MONO }}
+      >
+        Document
+      </span>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        onChange={handleChange}
+      />
+
+      {selectedFile ? (
+        <div className="mt-2 flex flex-1 flex-col items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 p-8">
+          <div className="relative">
+            <FileText className="size-10 text-emerald-600" />
+            <CheckCircle2 className="absolute -right-1 -top-1 size-4 rounded-full bg-white text-emerald-500" />
+          </div>
+          <p className="mt-3 text-[13px] font-medium text-gray-900">
+            {selectedFile.name}
+          </p>
+          <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+            <CheckCircle2 className="size-3" /> Verified
+          </span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="mt-2 flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-200 transition-colors hover:border-gray-300 hover:bg-gray-50"
+        >
+          <Upload className="size-5 text-gray-400" />
+          <p className="text-[13px] text-gray-600">Click to upload</p>
+          <p className="text-[11px] text-gray-400">
+            PDF, JPG or PNG up to 10MB
+          </p>
+        </button>
+      )}
+
+      <div className="mt-6">
+        <button
+          onClick={onBack}
+          className="flex size-10 items-center justify-center rounded-md border border-gray-200 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
+        >
+          <ArrowLeft className="size-4" />
+        </button>
+      </div>
+    </>
+  );
+}
