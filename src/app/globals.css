@@ -8,6 +8,9 @@
 @theme inline {
     --font-sans: var(--font-sans);
     --font-display: var(--font-display);
+    --color-brand-900: var(--brand-900);
+    --color-brand-800: var(--brand-800);
+    --color-brand-700: var(--brand-700);
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
@@ -54,6 +57,9 @@
 
 :root {
     --radius: 0.625rem;
+    --brand-900: #5c0e0e;
+    --brand-800: #7a1616;
+    --brand-700: #6b1212;
     /* Palette: Dust Grey, Gunmetal, Rosy Copper, Pacific Blue, Glaucous */
     --background: oklch(0.988 0.003 17);
     --foreground: oklch(0.316 0.008 255);

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 import { FONT_MONO, STEP_LABELS } from "../constants";
 import type { Step } from "../types";
@@ -12,6 +13,12 @@ export function StepCard({
   step: Step;
   children: React.ReactNode;
 }>) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    contentRef.current?.focus();
+  }, []);
+
   return (
     <motion.div
       key={step}
@@ -32,7 +39,13 @@ export function StepCard({
           STEP {step}/5
         </span>
       </div>
-      <div className="flex flex-1 flex-col px-7 py-6">{children}</div>
+      <div
+        ref={contentRef}
+        tabIndex={-1}
+        className="flex flex-1 flex-col px-7 py-6 outline-none"
+      >
+        {children}
+      </div>
     </motion.div>
   );
 }

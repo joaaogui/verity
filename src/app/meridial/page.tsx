@@ -1,30 +1,35 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 
 import { AnalyzingStep } from "./components/analyzing-step";
 import { CompleteStep } from "./components/complete-step";
 import { CookieBanner } from "./components/cookie-banner";
-import { FluidBackground } from "./components/fluid-background";
+import { Logo } from "./components/logo";
 import { StepCard } from "./components/step-card";
 import { UploadStep } from "./components/upload-step";
 import { VerificationStep } from "./components/verification-step";
 import { WelcomeStep } from "./components/welcome-step";
 import { dmSans, emptyAddress, FONT_BODY, FONT_MONO, ibmPlexMono } from "./constants";
 import type { AddressData, Step } from "./types";
+import { extractionResponseSchema } from "./types";
+
+const FluidBackground = dynamic(
+  () => import("./components/fluid-background").then(mod => ({ default: mod.FluidBackground })),
+  { ssr: false },
+);
 
 export default function MeridialPage() {
   const [step, setStep] = useState<Step>(1);
   const [showConsent, setShowConsent] = useState(true);
   const [address, setAddress] = useState<AddressData>(emptyAddress);
-
-  const handleAgreeConsent = useCallback(() => {
-    setShowConsent(false);
-  }, []);
+  const [hadExtractionError, setHadExtractionError] = useState(false);
 
   const handleFileSelect = useCallback(async (file: File) => {
     setStep(3);
+    setHadExtractionError(false);
 
     try {
       const formData = new FormData();
@@ -37,17 +42,11 @@ export default function MeridialPage() {
 
       if (!res.ok) throw new Error("Extraction failed");
 
-      const data = await res.json();
-      setAddress({
-        fullName: data.fullName || "",
-        streetAddress: data.streetAddress || "",
-        city: data.city || "",
-        state: data.state || "",
-        zipCode: data.zipCode || "",
-        country: data.country || "",
-      });
+      const data = extractionResponseSchema.parse(await res.json());
+      setAddress(data);
       setStep(4);
     } catch {
+      setHadExtractionError(true);
       setAddress(emptyAddress);
       setStep(4);
     }
@@ -63,7 +62,7 @@ export default function MeridialPage() {
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4">
         <div className="w-full max-w-[540px]">
           <div className="mb-2 px-1">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 80" fill="none" className="h-[32px] w-auto text-white"><path d="M70.7021 73.3765V71.7501H72.4199C72.9499 71.7501 73.224 71.6404 73.425 71.147L73.7905 70.1602L70.0259 61.1325H72.2554L74.7956 67.5834L77.1165 61.1325H79.3277L75.2342 71.8232C74.7225 73.1572 73.9001 73.3765 72.8219 73.3765H70.7021Z" fill="currentColor" /><path d="M66.2535 70.5804C65.0108 70.5804 63.9691 70.087 63.2382 69.0088V70.3428H61.1183V57.5505H63.2382V62.4482C63.896 61.443 65.0108 60.8948 66.2535 60.8948C68.3003 60.8948 70.1094 62.6857 70.1094 65.7011C70.1094 68.7529 68.3003 70.5804 66.2535 70.5804ZM63.1833 65.7193C63.1833 67.492 64.0422 68.826 65.559 68.826C67.0576 68.826 67.9348 67.492 67.9348 65.7011C67.9348 63.9284 67.0576 62.6492 65.559 62.6492C64.0422 62.6492 63.1833 63.9467 63.1833 65.7193Z" fill="currentColor" /><path fillRule="evenodd" clipRule="evenodd" d="M97.2072 79.1305C103.163 79.1305 107.991 74.2962 107.991 68.3328C107.991 62.3693 103.163 57.535 97.2072 57.535C91.2516 57.535 86.4237 62.3693 86.4237 68.3328C86.4237 74.2962 91.2516 79.1305 97.2072 79.1305ZM104.756 60.7743H89.6587V75.8912H104.756V60.7743Z" fill="currentColor" /><path d="M208.204 79.5469C203.583 79.5469 200.656 76.0608 200.656 71.3715C200.656 66.7131 203.583 63.1961 208.204 63.1961C212.271 63.1961 215.598 65.5407 215.352 72.2661H204.23C204.445 74.8267 205.647 76.7395 208.235 76.7395C209.991 76.7395 211.162 75.8756 211.655 74.2714H215.167C214.674 77.2331 212.271 79.5469 208.204 79.5469ZM204.291 69.8598H211.84C211.655 67.145 210.361 65.9727 208.204 65.9727C205.832 65.9727 204.63 67.6694 204.291 69.8598Z" fill="currentColor" /><path d="M195.591 79.1458V57.5505H199.165V79.1458H195.591Z" fill="currentColor" /><path d="M187.608 79.547C185.513 79.547 183.757 78.714 182.525 76.8938V79.1459H178.951V57.5506H182.525V65.8185C183.634 64.1218 185.513 63.1962 187.608 63.1962C191.059 63.1962 194.109 66.2196 194.109 71.3099C194.109 76.4619 191.059 79.547 187.608 79.547ZM182.432 71.3408C182.432 74.3333 183.88 76.5853 186.438 76.5853C188.964 76.5853 190.443 74.3333 190.443 71.3099C190.443 68.3174 188.964 66.1579 186.438 66.1579C183.88 66.1579 182.432 68.3483 182.432 71.3408Z" fill="currentColor" /><path d="M172.992 79.1457V63.5971H176.596V79.1457H172.992ZM172.56 59.3397C172.56 58.1057 173.546 57.1185 174.778 57.1185C176.011 57.1185 176.997 58.1057 176.997 59.3397C176.997 60.5737 176.011 61.5609 174.778 61.5609C173.546 61.5609 172.56 60.5737 172.56 59.3397Z" fill="currentColor" /><path d="M164.889 79.5469C160.638 79.5469 158.111 77.5107 157.865 74.2714H161.469C161.777 75.9991 162.979 76.8012 164.982 76.8012C166.738 76.8012 167.847 76.0299 167.847 74.8267C167.847 73.8704 167.138 73.2534 165.844 72.9757L162.733 72.3587C160.453 71.8651 158.296 70.7236 158.296 67.9471C158.296 65.1088 160.915 63.1961 164.643 63.1961C168.309 63.1961 170.897 64.7386 171.205 68.1322H167.631C167.385 66.6822 166.307 65.911 164.581 65.911C162.979 65.911 161.87 66.6822 161.87 67.762C161.87 68.8109 162.733 69.3045 163.811 69.5205L167.138 70.1683C169.233 70.5694 171.483 71.7725 171.483 74.6108C171.483 77.7267 168.679 79.5469 164.889 79.5469Z" fill="currentColor" /><path d="M152.95 79.1459V63.5973H156.555V79.1459H152.95ZM152.827 61.2835V57.5506H156.678V61.2835H152.827Z" fill="currentColor" /><path d="M142.098 79.1457L136.429 63.5971H140.28L144.223 75.4745L148.167 63.5971H152.049L146.38 79.1457H142.098Z" fill="currentColor" /><path d="M121.78 79.1458V63.5972H125.354V65.9418C126.401 64.1833 128.404 63.1961 130.499 63.1961C133.98 63.1961 136.045 65.4482 136.045 69.3971V79.1458H132.471V69.829C132.471 67.4843 131.177 66.1886 129.205 66.1886C127.017 66.1886 125.354 67.9779 125.354 70.3843V79.1458H121.78Z" fill="currentColor" /><path d="M115.467 79.1459V57.5506H119.195V79.1459H115.467Z" fill="currentColor" /><path d="M206.362 46.2V0H214.018V46.2H206.362Z" fill="currentColor" /><path d="M181.03 47.058C174.496 47.058 170.272 43.23 170.272 37.422C170.272 29.634 177.004 27.786 182.614 26.862L189.016 25.938C191.458 25.542 192.052 24.288 192.052 22.77C192.052 20.064 190.204 17.886 186.112 17.886C182.152 17.886 179.578 19.734 179.116 23.364H171.46C172.384 15.972 178.258 12.078 186.178 12.078C195.154 12.078 199.642 16.368 199.642 24.42V38.676C199.642 39.6 200.302 40.194 201.226 40.194H203.008V46.2H198.124C194.758 46.2 192.646 44.55 192.646 41.976V41.25C189.742 45.474 185.386 47.058 181.03 47.058ZM178.06 36.63C178.06 39.6 180.238 41.25 183.538 41.25C188.818 41.25 192.052 36.894 192.052 31.416V29.634C191.062 30.162 190.138 30.36 189.016 30.624L184.066 31.482C179.908 32.208 178.06 33.792 178.06 36.63Z" fill="currentColor" /><path d="M134.401 47.058C127.009 47.058 120.475 40.458 120.475 29.436C120.475 18.546 127.009 12.078 134.401 12.078C138.955 12.078 142.915 14.058 145.291 17.688V0H152.947V46.2H145.291V41.382C142.651 45.276 138.955 47.058 134.401 47.058ZM128.329 29.436C128.329 35.904 131.431 40.722 136.909 40.722C142.387 40.722 145.555 35.904 145.555 29.502C145.555 23.1 142.387 18.414 136.909 18.414C131.431 18.414 128.329 23.034 128.329 29.436Z" fill="currentColor" /><path d="M109.029 46.1999V12.936H116.751V46.1999H109.029Z" fill="currentColor" /><path d="M108.768 0.441581H116.999V8.67278H108.768V0.441581Z" fill="currentColor" /><path d="M158.305 46.1996V12.9359H166.027V46.1996H158.305Z" fill="currentColor" /><path d="M166.723 4.55718C166.723 7.07399 164.683 9.11431 162.166 9.11431C159.649 9.11431 157.609 7.07399 157.609 4.55718C157.609 2.04037 159.649 5.14984e-05 162.166 5.14984e-05C164.683 5.14984e-05 166.723 2.04037 166.723 4.55718Z" fill="currentColor" /><path d="M86.8359 46.2V12.936H94.4919V18.612C96.4059 14.586 99.5079 12.936 103.732 12.936H105.514V20.196H102.94C97.2639 20.196 94.4919 23.76 94.4919 30.096V46.2H86.8359Z" fill="currentColor" /><path d="M67.8192 47.058C57.9192 47.058 51.6492 39.6 51.6492 29.568C51.6492 19.602 57.9192 12.078 67.8192 12.078C76.5312 12.078 83.6591 17.094 83.1311 31.482H59.3051C59.7671 36.96 62.3411 41.052 67.8851 41.052C71.6471 41.052 74.1552 39.204 75.2112 35.772H82.7352C81.6792 42.108 76.5312 47.058 67.8192 47.058ZM59.4371 26.334H75.6071C75.2111 20.526 72.4392 18.018 67.8192 18.018C62.7372 18.018 60.1631 21.648 59.4371 26.334Z" fill="currentColor" /><path d="M2.43187e-05 46.2V0H11.352L23.76 36.498L35.97 0H47.256V46.2H39.798V10.296L27.39 46.2H20.064L7.52402 10.494V46.2H2.43187e-05Z" fill="currentColor" /></svg>
+            <Logo />
           </div>
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -91,6 +90,7 @@ export default function MeridialPage() {
                   onChange={setAddress}
                   onBack={() => setStep(1)}
                   onContinue={() => setStep(5)}
+                  hadExtractionError={hadExtractionError}
                 />
               </StepCard>
             )}
@@ -104,14 +104,14 @@ export default function MeridialPage() {
       </main>
 
       <footer className="relative z-10 pb-6 text-center" style={{ fontFamily: FONT_MONO }}>
-        <div className="flex items-center justify-center gap-6 text-[13px] font-medium tracking-[0.15em] text-white/30 uppercase">
-          <span className="cursor-pointer transition-colors hover:text-white/50">
+        <nav className="flex items-center justify-center gap-6 text-[13px] font-medium tracking-[0.15em] text-white/30 uppercase">
+          <a href="/privacy" className="transition-colors hover:text-white/50">
             Privacy Policy
-          </span>
-          <span className="cursor-pointer transition-colors hover:text-white/50">
+          </a>
+          <a href="/terms" className="transition-colors hover:text-white/50">
             Terms of Use
-          </span>
-        </div>
+          </a>
+        </nav>
         <p className="mt-2 text-[11px] tracking-[0.12em] text-white/20 uppercase">
           All Rights Reserved &middot; Invisible Marketplace
         </p>
@@ -129,7 +129,7 @@ export default function MeridialPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showConsent && <CookieBanner onAgree={handleAgreeConsent} />}
+        {showConsent && <CookieBanner onAgree={() => setShowConsent(false)} />}
       </AnimatePresence>
     </div>
   );

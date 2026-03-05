@@ -1,9 +1,12 @@
 "use client";
 
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-import { FONT_HEADING, FONT_MONO } from "../constants";
+import { FONT_MONO } from "../constants";
 import type { AddressData } from "../types";
+import { BackButton } from "./back-button";
+import { PrimaryButton } from "./primary-button";
+import { StepHeading } from "./step-heading";
 
 function AddressField({
   label,
@@ -26,7 +29,7 @@ function AddressField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border-b border-gray-200 bg-transparent pb-2 text-[14px] text-gray-900 outline-none transition-colors focus:border-[#5c0e0e]"
+        className="w-full border-b border-gray-200 bg-transparent pb-2 text-[14px] text-gray-900 outline-none transition-colors focus:border-brand-900"
       />
     </div>
   );
@@ -37,30 +40,41 @@ export function VerificationStep({
   onChange,
   onBack,
   onContinue,
+  hadExtractionError = false,
 }: Readonly<{
   address: AddressData;
   onChange: (a: AddressData) => void;
   onBack: () => void;
   onContinue: () => void;
+  hadExtractionError?: boolean;
 }>) {
   const isValid = address.streetAddress.trim().length > 0;
 
   return (
     <>
-      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
+      <StepHeading>
         Confirm your details{address.fullName ? `, ${address.fullName}` : ""}
-      </h2>
+      </StepHeading>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
         We&apos;ve extracted your address information from the document. Please
         take a moment to review and confirm that these details are correct.
       </p>
 
-      <div className="mt-4 rounded-md bg-emerald-50 px-4 py-3">
-        <p className="text-[13px] text-emerald-700">
-          <span className="mr-1">&#10003;</span> Address information
-          successfully extracted from your document
-        </p>
-      </div>
+      {hadExtractionError ? (
+        <div className="mt-4 rounded-md bg-amber-50 px-4 py-3">
+          <p className="text-[13px] text-amber-700">
+            <span className="mr-1">&#9888;</span> We couldn&apos;t extract
+            information automatically. Please fill in your details manually.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-md bg-emerald-50 px-4 py-3">
+          <p className="text-[13px] text-emerald-700">
+            <span className="mr-1">&#10003;</span> Address information
+            successfully extracted from your document
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 space-y-5">
         <AddressField
@@ -95,21 +109,11 @@ export function VerificationStep({
       </div>
 
       <div className="mt-8 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="flex size-10 items-center justify-center rounded-md border border-gray-200 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        <button
-          onClick={onContinue}
-          disabled={!isValid}
-          className="flex flex-1 items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[13px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616] disabled:opacity-40"
-          style={{ fontFamily: FONT_MONO }}
-        >
+        <BackButton onClick={onBack} />
+        <PrimaryButton onClick={onContinue} disabled={!isValid} className="flex-1">
           CONTINUE
           <ArrowRight className="size-4" />
-        </button>
+        </PrimaryButton>
       </div>
     </>
   );

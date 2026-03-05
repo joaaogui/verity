@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { FONT_HEADING, STATUS_MESSAGES } from "../constants";
+import { STATUS_MESSAGES } from "../constants";
+import { StepHeading } from "./step-heading";
 
 export function AnalyzingStep() {
   const [statusIndex, setStatusIndex] = useState(0);
@@ -21,9 +22,7 @@ export function AnalyzingStep() {
       <div className="mb-4">
         <Loader2 className="size-6 animate-spin text-gray-400" />
       </div>
-      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
-        Analyzing document
-      </h2>
+      <StepHeading>Analyzing document</StepHeading>
       <div className="flex-1" />
       <AnimatePresence mode="wait">
         <motion.p

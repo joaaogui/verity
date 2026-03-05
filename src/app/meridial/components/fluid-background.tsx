@@ -131,6 +131,11 @@ function compileShader(gl: WebGLRenderingContext, type: number, src: string) {
   const s = gl.createShader(type)!;
   gl.shaderSource(s, src);
   gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error("Shader compile error:", gl.getShaderInfoLog(s));
+    gl.deleteShader(s);
+    return null;
+  }
   return s;
 }
 
@@ -146,6 +151,7 @@ export function FluidBackground() {
 
     const vs = compileShader(gl, gl.VERTEX_SHADER, VERT_SRC);
     const fs = compileShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
+    if (!vs || !fs) return;
     const prog = gl.createProgram();
     if (!prog) return;
     gl.attachShader(prog, vs);

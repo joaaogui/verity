@@ -1,14 +1,15 @@
 "use client";
 
 import {
-  ArrowLeft,
   CheckCircle2,
   FileText,
   Upload,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { FONT_HEADING, FONT_MONO } from "../constants";
+import { FILE_SELECT_DELAY_MS, FONT_MONO } from "../constants";
+import { BackButton } from "./back-button";
+import { StepHeading } from "./step-heading";
 
 export function UploadStep({
   onBack,
@@ -24,14 +25,12 @@ export function UploadStep({
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
-    setTimeout(() => onFileSelect(file), 1200);
+    setTimeout(() => onFileSelect(file), FILE_SELECT_DELAY_MS);
   };
 
   return (
     <>
-      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
-        Upload Document
-      </h2>
+      <StepHeading>Upload Document</StepHeading>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
         Upload your document. We&apos;ll analyze it using our document
         verification API.
@@ -80,12 +79,7 @@ export function UploadStep({
       )}
 
       <div className="mt-6">
-        <button
-          onClick={onBack}
-          className="flex size-10 items-center justify-center rounded-md border border-gray-200 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
+        <BackButton onClick={onBack} />
       </div>
     </>
   );

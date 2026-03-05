@@ -36,6 +36,8 @@ export const STATUS_MESSAGES = [
   "Almost done",
 ];
 
+export const FILE_SELECT_DELAY_MS = 1200;
+
 export const emptyAddress: AddressData = {
   fullName: "",
   streetAddress: "",
