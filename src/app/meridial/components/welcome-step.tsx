@@ -9,7 +9,7 @@ export function WelcomeStep({ onUpload }: Readonly<{ onUpload: () => void }>) {
   return (
     <>
       <StepHeading>Welcome to Invisible Marketplace</StepHeading>
-      <p className="mt-3 text-[15px] leading-relaxed text-gray-500">
+      <p className="mt-5 text-[16px] font-medium leading-relaxed tracking-[-0.01em] text-gray-400">
         Verify your address. We need your address to verify you&apos;re a real
         person, to collect your documents.
       </p>
