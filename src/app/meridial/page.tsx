@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { IBM_Plex_Mono } from "next/font/google";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +11,7 @@ import {
   Shield,
   Upload,
 } from "lucide-react";
+import { DM_Sans, IBM_Plex_Mono } from "next/font/google";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -20,7 +20,14 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-mono-accent",
 });
 
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-heading",
+});
+
 const FONT_BODY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+const FONT_HEADING = "var(--font-heading), 'Montserrat', sans-serif";
 const FONT_MONO = "var(--font-mono-accent), 'SF Mono', 'Roboto Mono', monospace";
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -70,122 +77,84 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec2 u_mouse;
 
-// Smooth value noise
-vec3 hash(vec3 p){
-  p=vec3(dot(p,vec3(127.1,311.7,74.7)),
-         dot(p,vec3(269.5,183.3,246.1)),
-         dot(p,vec3(113.5,271.9,124.6)));
+vec2 hash2(vec2 p){
+  p=vec2(dot(p,vec2(127.1,311.7)),
+         dot(p,vec2(269.5,183.3)));
   return -1.0+2.0*fract(sin(p)*43758.5453123);
 }
 
-float noise(vec3 p){
-  vec3 i=floor(p);
-  vec3 f=fract(p);
-  vec3 u=f*f*(3.0-2.0*f);
-
-  return mix(mix(mix(dot(hash(i+vec3(0,0,0)),f-vec3(0,0,0)),
-                     dot(hash(i+vec3(1,0,0)),f-vec3(1,0,0)),u.x),
-                 mix(dot(hash(i+vec3(0,1,0)),f-vec3(0,1,0)),
-                     dot(hash(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
-             mix(mix(dot(hash(i+vec3(0,0,1)),f-vec3(0,0,1)),
-                     dot(hash(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x),
-                 mix(dot(hash(i+vec3(0,1,1)),f-vec3(0,1,1)),
-                     dot(hash(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z);
+float noise(vec2 p){
+  vec2 i=floor(p);
+  vec2 f=fract(p);
+  vec2 u=f*f*f*(f*(f*6.0-15.0)+10.0);
+  return mix(mix(dot(hash2(i),f),
+                 dot(hash2(i+vec2(1,0)),f-vec2(1,0)),u.x),
+             mix(dot(hash2(i+vec2(0,1)),f-vec2(0,1)),
+                 dot(hash2(i+vec2(1,1)),f-vec2(1,1)),u.x),u.y);
 }
 
-// Layered noise for smooth flowing surface
-float fbm(vec3 p){
-  float v=0.0;
-  float a=0.55;
-  vec3 shift=vec3(100.0);
+float fbm(vec2 p){
+  float v=0.0,a=0.6;
+  mat2 rot=mat2(0.866,0.5,-0.5,0.866);
   for(int i=0;i<2;i++){
     v+=a*noise(p);
-    p=p*1.8+shift;
-    a*=0.45;
+    p=rot*p*1.6+100.0;
+    a*=0.4;
   }
   return v;
 }
 
+float heightMap(vec2 st,float t){
+  float q=fbm(st+vec2(t*0.02,t*0.015));
+  float r=fbm(st+q*0.5+vec2(5.2,1.3)+t*0.015);
+  float s=fbm(st+r*0.4+vec2(1.7,9.2)+t*0.012);
+  float h=q*0.35+r*0.4+s*0.25;
+  float s2=smoothstep(-0.70,0.70,h)*2.0-1.0;
+  return sign(s2)*pow(abs(s2),0.85);
+}
+
 void main(){
   vec2 uv=gl_FragCoord.xy/u_resolution;
-  vec2 aspect=vec2(u_resolution.x/u_resolution.y,1.0);
-  vec2 p=uv*aspect;
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 st=uv*vec2(0.65*aspect,1.1);
+  float t=u_time;
 
-  float t=u_time*0.16;
+  float eps=0.018;
+  float h =heightMap(st,t);
+  float hx=heightMap(st+vec2(eps,0),t);
+  float hy=heightMap(st+vec2(0,eps),t);
+  vec3 N=normalize(vec3((h-hx)/eps,(h-hy)/eps,0.25));
 
-  // Stretched noise for long flowing folds
-  vec2 st=p*vec2(0.6, 1.4);
+  float ambDiff=dot(N,normalize(vec3(0.3,0.8,1.0)))*0.5+0.5;
 
-  vec3 q=vec3(st, t*0.4);
-  float n1=fbm(q+vec3(0.0, 0.0, t*0.3));
-  float n2=fbm(q+vec3(5.2, 1.3, t*0.2)+n1*1.0);
-  float n3=fbm(q+vec3(1.7, 9.2, t*0.25)+n2*0.8);
+  vec2 mA=u_mouse*vec2(aspect,1.0);
+  vec2 sA=uv*vec2(aspect,1.0);
+  vec2 delta=mA-sA;
+  float dist=length(delta);
 
-  // Combined height field -- sharpen with contrast curve
-  float h=n1*0.3+n2*0.5+n3*0.4;
-  h=smoothstep(-0.18, 0.18, h)*2.0-1.0;
+  vec3 L=normalize(vec3(delta,0.35));
+  float diff=max(dot(N,L),0.0);
+  vec3 H=normalize(L+vec3(0,0,1));
+  float spec=pow(max(dot(N,H),0.0),32.0);
+  float falloff=exp(-dist*dist*4.5);
 
-  // Compute surface normal from height field gradient
-  float eps=0.003;
-  vec2 sta=(uv+vec2(eps,0.0))*aspect*vec2(0.6,1.4);
-  vec2 stb=(uv+vec2(0.0,eps))*aspect*vec2(0.6,1.4);
+  vec3 shadow  =vec3(0.16,0.045,0.045);
+  vec3 midtone =vec3(0.30,0.08,0.07);
+  vec3 crimson =vec3(0.42,0.10,0.09);
+  vec3 warmGlow=vec3(0.58,0.16,0.14);
 
-  vec3 qa=vec3(sta, t*0.4);
-  float na1=fbm(qa+vec3(0.0,0.0,t*0.3));
-  float na2=fbm(qa+vec3(5.2,1.3,t*0.2)+na1*1.0);
-  float na3=fbm(qa+vec3(1.7,9.2,t*0.25)+na2*0.8);
-  float ha=na1*0.3+na2*0.5+na3*0.4;
-  ha=smoothstep(-0.18,0.18,ha)*2.0-1.0;
+  float shade=smoothstep(-0.5,0.6,h);
+  vec3 col=mix(shadow,midtone,shade);
+  col+=midtone*ambDiff*0.38;
+  vec3 lit=mix(crimson,warmGlow,diff);
+  col+=lit*diff*falloff*1.5;
+  col+=warmGlow*spec*falloff*0.35;
 
-  vec3 qb=vec3(stb, t*0.4);
-  float nb1=fbm(qb+vec3(0.0,0.0,t*0.3));
-  float nb2=fbm(qb+vec3(5.2,1.3,t*0.2)+nb1*1.0);
-  float nb3=fbm(qb+vec3(1.7,9.2,t*0.25)+nb2*0.8);
-  float hb=nb1*0.3+nb2*0.5+nb3*0.4;
-  hb=smoothstep(-0.18,0.18,hb)*2.0-1.0;
-
-  vec3 normal=normalize(vec3((h-ha)/eps, (h-hb)/eps, 1.0));
-
-  // Mouse light -- localized point light
-  vec2 mousePos=u_mouse*aspect;
-  vec2 surfPos=uv*aspect;
-  vec2 toMouse=mousePos-surfPos;
-  float mouseDist=length(toMouse);
-
-  vec3 lightDir=normalize(vec3(toMouse, 0.35));
-  float diff=max(dot(normal, lightDir), 0.0);
-  float wrap=diff*0.6+0.4;
-
-  // Tight falloff from mouse position
-  float falloff=exp(-mouseDist*mouseDist*4.0);
-
-  // Palette
-  vec3 darkMaroon=vec3(0.15, 0.025, 0.03);
-  vec3 deepRed=vec3(0.33, 0.06, 0.055);
-  vec3 crimson=vec3(0.55, 0.08, 0.06);
-  vec3 warmRose=vec3(0.75, 0.18, 0.12);
-
-  // Base color from noise depth
-  float shade=smoothstep(-0.4, 0.6, h);
-  vec3 baseCol=mix(darkMaroon, deepRed, shade);
-
-  // Ambient fill so unlit areas stay visible
-  float ambDiff=dot(normal, normalize(vec3(0.3, 0.8, 1.0)))*0.5+0.5;
-  baseCol+=deepRed*ambDiff*0.25;
-
-  // Mouse-driven lighting layered on top
-  vec3 lit=mix(crimson, warmRose, wrap*falloff);
-  baseCol+=lit*wrap*falloff*1.4;
-
-  // Softer vignette
   vec2 vc=uv-0.5;
-  float vig=1.0-dot(vc,vc)*0.45;
-  baseCol*=vig;
+  col*=1.0-dot(vc,vc)*0.3;
+  col=pow(col,vec3(0.92));
 
-  // Gamma
-  baseCol=pow(baseCol, vec3(0.92));
-
-  gl_FragColor=vec4(baseCol, 1.0);
+  gl_FragColor=vec4(col,1.0);
 }`;
 
 function compileShader(gl: WebGLRenderingContext, type: number, src: string) {
@@ -249,8 +218,8 @@ function FluidBackground() {
     let raf = 0;
 
     const draw = () => {
-      smoothX += (mouseX - smoothX) * 0.15;
-      smoothY += (mouseY - smoothY) * 0.15;
+      smoothX += (mouseX - smoothX) * 0.07;
+      smoothY += (mouseY - smoothY) * 0.07;
 
       gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.uniform1f(uTime, (performance.now() - t0) / 1000);
@@ -275,7 +244,7 @@ function FluidBackground() {
     <canvas
       ref={canvasRef}
       className="fixed inset-0"
-      style={{ background: "#1a0303" }}
+      style={{ background: "#150202" }}
     />
   );
 }
@@ -302,10 +271,10 @@ function StepCard({
         className="flex items-center justify-between border-b border-gray-100 px-7 py-2.5"
         style={{ fontFamily: FONT_MONO }}
       >
-        <span className="text-[10px] font-medium tracking-[0.15em] text-gray-400 uppercase">
+        <span className="text-[12px] font-medium tracking-[0.15em] text-gray-400 uppercase">
           {STEP_LABELS[step]}
         </span>
-        <span className="text-[10px] font-medium tracking-[0.15em] text-gray-400 uppercase">
+        <span className="text-[12px] font-medium tracking-[0.15em] text-gray-400 uppercase">
           STEP {step}/5
         </span>
       </div>
@@ -338,7 +307,7 @@ function CookieBanner({ onAgree }: Readonly<{ onAgree: () => void }>) {
       </p>
       <button
         onClick={onAgree}
-        className="shrink-0 rounded-full bg-[#5c0e0e] px-5 py-2 text-[11px] font-semibold tracking-widest text-white uppercase transition-colors hover:bg-[#7a1616]"
+        className="shrink-0 rounded-full bg-[#5c0e0e] px-5 py-2 text-[13px] font-semibold tracking-widest text-white uppercase transition-colors hover:bg-[#7a1616]"
         style={{ fontFamily: FONT_MONO }}
       >
         I AGREE
@@ -352,17 +321,17 @@ function CookieBanner({ onAgree }: Readonly<{ onAgree: () => void }>) {
 function WelcomeStep({ onUpload }: Readonly<{ onUpload: () => void }>) {
   return (
     <>
-      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
+      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
         Welcome to Invisible Marketplace
       </h2>
-      <p className="mt-3 text-[13px] leading-relaxed text-gray-500">
+      <p className="mt-3 text-[15px] leading-relaxed text-gray-500">
         Verify your address. We need your address to verify you&apos;re a real
         person, to collect your documents.
       </p>
       <div className="flex-1" />
       <button
         onClick={onUpload}
-        className="flex w-full items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[11px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616]"
+        className="flex w-full items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[13px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616]"
         style={{ fontFamily: FONT_MONO }}
       >
         UPLOAD DOCUMENT
@@ -393,7 +362,7 @@ function UploadStep({
 
   return (
     <>
-      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
+      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
         Upload Document
       </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
@@ -402,7 +371,7 @@ function UploadStep({
       </p>
 
       <span
-        className="mt-6 text-[9px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+        className="mt-6 text-[11px] font-medium tracking-[0.15em] text-gray-400 uppercase"
         style={{ fontFamily: FONT_MONO }}
       >
         Document
@@ -472,7 +441,7 @@ function AnalyzingStep() {
       <div className="mb-4">
         <Loader2 className="size-6 animate-spin text-gray-400" />
       </div>
-      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
+      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
         Analyzing document
       </h2>
       <div className="flex-1" />
@@ -506,7 +475,7 @@ function AddressField({
   return (
     <div className="flex flex-col gap-1.5">
       <label
-        className="text-[9px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+        className="text-[11px] font-medium tracking-[0.15em] text-gray-400 uppercase"
         style={{ fontFamily: FONT_MONO }}
       >
         {label}
@@ -536,7 +505,7 @@ function VerificationStep({
 
   return (
     <>
-      <h2 className="text-[28px] leading-tight font-bold text-gray-900">
+      <h2 className="text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
         Confirm your details{address.fullName ? `, ${address.fullName}` : ""}
       </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
@@ -593,7 +562,7 @@ function VerificationStep({
         <button
           onClick={onContinue}
           disabled={!isValid}
-          className="flex flex-1 items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[11px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616] disabled:opacity-40"
+          className="flex flex-1 items-center justify-between rounded-md bg-[#5c0e0e] px-5 py-3.5 text-[13px] font-semibold tracking-[0.15em] text-white uppercase transition-colors hover:bg-[#7a1616] disabled:opacity-40"
           style={{ fontFamily: FONT_MONO }}
         >
           CONTINUE
@@ -613,7 +582,7 @@ function CompleteStep() {
   return (
     <>
       <CheckCircle2 className="size-7 text-gray-700" />
-      <h2 className="mt-3 text-[28px] leading-tight font-bold text-gray-900">
+      <h2 className="mt-3 text-[36px] leading-tight font-semibold tracking-[-0.04em] text-gray-900" style={{ fontFamily: FONT_HEADING }}>
         Verification Complete
       </h2>
       <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
@@ -716,7 +685,7 @@ export default function MeridialPage() {
 
   return (
     <div
-      className={`relative flex min-h-screen flex-col ${ibmPlexMono.variable}`}
+      className={`relative flex min-h-screen flex-col ${ibmPlexMono.variable} ${dmSans.variable}`}
       style={{ fontFamily: FONT_BODY }}
     >
       <FluidBackground />
@@ -725,15 +694,7 @@ export default function MeridialPage() {
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4">
         <div className="w-full max-w-[540px]">
           <div className="mb-2 px-1">
-            <h1
-              className="text-[26px] font-bold tracking-wide text-white"
-              style={{ fontFamily: "var(--font-display), serif" }}
-            >
-              Meridial
-            </h1>
-            <p className="mt-0.5 text-[10px] tracking-[0.12em] text-white/50">
-              by Invisible
-            </p>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 80" fill="none" className="h-[32px] w-auto text-white"><path d="M70.7021 73.3765V71.7501H72.4199C72.9499 71.7501 73.224 71.6404 73.425 71.147L73.7905 70.1602L70.0259 61.1325H72.2554L74.7956 67.5834L77.1165 61.1325H79.3277L75.2342 71.8232C74.7225 73.1572 73.9001 73.3765 72.8219 73.3765H70.7021Z" fill="currentColor"/><path d="M66.2535 70.5804C65.0108 70.5804 63.9691 70.087 63.2382 69.0088V70.3428H61.1183V57.5505H63.2382V62.4482C63.896 61.443 65.0108 60.8948 66.2535 60.8948C68.3003 60.8948 70.1094 62.6857 70.1094 65.7011C70.1094 68.7529 68.3003 70.5804 66.2535 70.5804ZM63.1833 65.7193C63.1833 67.492 64.0422 68.826 65.559 68.826C67.0576 68.826 67.9348 67.492 67.9348 65.7011C67.9348 63.9284 67.0576 62.6492 65.559 62.6492C64.0422 62.6492 63.1833 63.9467 63.1833 65.7193Z" fill="currentColor"/><path fillRule="evenodd" clipRule="evenodd" d="M97.2072 79.1305C103.163 79.1305 107.991 74.2962 107.991 68.3328C107.991 62.3693 103.163 57.535 97.2072 57.535C91.2516 57.535 86.4237 62.3693 86.4237 68.3328C86.4237 74.2962 91.2516 79.1305 97.2072 79.1305ZM104.756 60.7743H89.6587V75.8912H104.756V60.7743Z" fill="currentColor"/><path d="M208.204 79.5469C203.583 79.5469 200.656 76.0608 200.656 71.3715C200.656 66.7131 203.583 63.1961 208.204 63.1961C212.271 63.1961 215.598 65.5407 215.352 72.2661H204.23C204.445 74.8267 205.647 76.7395 208.235 76.7395C209.991 76.7395 211.162 75.8756 211.655 74.2714H215.167C214.674 77.2331 212.271 79.5469 208.204 79.5469ZM204.291 69.8598H211.84C211.655 67.145 210.361 65.9727 208.204 65.9727C205.832 65.9727 204.63 67.6694 204.291 69.8598Z" fill="currentColor"/><path d="M195.591 79.1458V57.5505H199.165V79.1458H195.591Z" fill="currentColor"/><path d="M187.608 79.547C185.513 79.547 183.757 78.714 182.525 76.8938V79.1459H178.951V57.5506H182.525V65.8185C183.634 64.1218 185.513 63.1962 187.608 63.1962C191.059 63.1962 194.109 66.2196 194.109 71.3099C194.109 76.4619 191.059 79.547 187.608 79.547ZM182.432 71.3408C182.432 74.3333 183.88 76.5853 186.438 76.5853C188.964 76.5853 190.443 74.3333 190.443 71.3099C190.443 68.3174 188.964 66.1579 186.438 66.1579C183.88 66.1579 182.432 68.3483 182.432 71.3408Z" fill="currentColor"/><path d="M172.992 79.1457V63.5971H176.596V79.1457H172.992ZM172.56 59.3397C172.56 58.1057 173.546 57.1185 174.778 57.1185C176.011 57.1185 176.997 58.1057 176.997 59.3397C176.997 60.5737 176.011 61.5609 174.778 61.5609C173.546 61.5609 172.56 60.5737 172.56 59.3397Z" fill="currentColor"/><path d="M164.889 79.5469C160.638 79.5469 158.111 77.5107 157.865 74.2714H161.469C161.777 75.9991 162.979 76.8012 164.982 76.8012C166.738 76.8012 167.847 76.0299 167.847 74.8267C167.847 73.8704 167.138 73.2534 165.844 72.9757L162.733 72.3587C160.453 71.8651 158.296 70.7236 158.296 67.9471C158.296 65.1088 160.915 63.1961 164.643 63.1961C168.309 63.1961 170.897 64.7386 171.205 68.1322H167.631C167.385 66.6822 166.307 65.911 164.581 65.911C162.979 65.911 161.87 66.6822 161.87 67.762C161.87 68.8109 162.733 69.3045 163.811 69.5205L167.138 70.1683C169.233 70.5694 171.483 71.7725 171.483 74.6108C171.483 77.7267 168.679 79.5469 164.889 79.5469Z" fill="currentColor"/><path d="M152.95 79.1459V63.5973H156.555V79.1459H152.95ZM152.827 61.2835V57.5506H156.678V61.2835H152.827Z" fill="currentColor"/><path d="M142.098 79.1457L136.429 63.5971H140.28L144.223 75.4745L148.167 63.5971H152.049L146.38 79.1457H142.098Z" fill="currentColor"/><path d="M121.78 79.1458V63.5972H125.354V65.9418C126.401 64.1833 128.404 63.1961 130.499 63.1961C133.98 63.1961 136.045 65.4482 136.045 69.3971V79.1458H132.471V69.829C132.471 67.4843 131.177 66.1886 129.205 66.1886C127.017 66.1886 125.354 67.9779 125.354 70.3843V79.1458H121.78Z" fill="currentColor"/><path d="M115.467 79.1459V57.5506H119.195V79.1459H115.467Z" fill="currentColor"/><path d="M206.362 46.2V0H214.018V46.2H206.362Z" fill="currentColor"/><path d="M181.03 47.058C174.496 47.058 170.272 43.23 170.272 37.422C170.272 29.634 177.004 27.786 182.614 26.862L189.016 25.938C191.458 25.542 192.052 24.288 192.052 22.77C192.052 20.064 190.204 17.886 186.112 17.886C182.152 17.886 179.578 19.734 179.116 23.364H171.46C172.384 15.972 178.258 12.078 186.178 12.078C195.154 12.078 199.642 16.368 199.642 24.42V38.676C199.642 39.6 200.302 40.194 201.226 40.194H203.008V46.2H198.124C194.758 46.2 192.646 44.55 192.646 41.976V41.25C189.742 45.474 185.386 47.058 181.03 47.058ZM178.06 36.63C178.06 39.6 180.238 41.25 183.538 41.25C188.818 41.25 192.052 36.894 192.052 31.416V29.634C191.062 30.162 190.138 30.36 189.016 30.624L184.066 31.482C179.908 32.208 178.06 33.792 178.06 36.63Z" fill="currentColor"/><path d="M134.401 47.058C127.009 47.058 120.475 40.458 120.475 29.436C120.475 18.546 127.009 12.078 134.401 12.078C138.955 12.078 142.915 14.058 145.291 17.688V0H152.947V46.2H145.291V41.382C142.651 45.276 138.955 47.058 134.401 47.058ZM128.329 29.436C128.329 35.904 131.431 40.722 136.909 40.722C142.387 40.722 145.555 35.904 145.555 29.502C145.555 23.1 142.387 18.414 136.909 18.414C131.431 18.414 128.329 23.034 128.329 29.436Z" fill="currentColor"/><path d="M109.029 46.1999V12.936H116.751V46.1999H109.029Z" fill="currentColor"/><path d="M108.768 0.441581H116.999V8.67278H108.768V0.441581Z" fill="currentColor"/><path d="M158.305 46.1996V12.9359H166.027V46.1996H158.305Z" fill="currentColor"/><path d="M166.723 4.55718C166.723 7.07399 164.683 9.11431 162.166 9.11431C159.649 9.11431 157.609 7.07399 157.609 4.55718C157.609 2.04037 159.649 5.14984e-05 162.166 5.14984e-05C164.683 5.14984e-05 166.723 2.04037 166.723 4.55718Z" fill="currentColor"/><path d="M86.8359 46.2V12.936H94.4919V18.612C96.4059 14.586 99.5079 12.936 103.732 12.936H105.514V20.196H102.94C97.2639 20.196 94.4919 23.76 94.4919 30.096V46.2H86.8359Z" fill="currentColor"/><path d="M67.8192 47.058C57.9192 47.058 51.6492 39.6 51.6492 29.568C51.6492 19.602 57.9192 12.078 67.8192 12.078C76.5312 12.078 83.6591 17.094 83.1311 31.482H59.3051C59.7671 36.96 62.3411 41.052 67.8851 41.052C71.6471 41.052 74.1552 39.204 75.2112 35.772H82.7352C81.6792 42.108 76.5312 47.058 67.8192 47.058ZM59.4371 26.334H75.6071C75.2111 20.526 72.4392 18.018 67.8192 18.018C62.7372 18.018 60.1631 21.648 59.4371 26.334Z" fill="currentColor"/><path d="M2.43187e-05 46.2V0H11.352L23.76 36.498L35.97 0H47.256V46.2H39.798V10.296L27.39 46.2H20.064L7.52402 10.494V46.2H2.43187e-05Z" fill="currentColor"/></svg>
           </div>
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -775,7 +736,7 @@ export default function MeridialPage() {
 
       {/* Footer */}
       <footer className="relative z-10 pb-6 text-center" style={{ fontFamily: FONT_MONO }}>
-        <div className="flex items-center justify-center gap-6 text-[11px] font-medium tracking-[0.15em] text-white/30 uppercase">
+        <div className="flex items-center justify-center gap-6 text-[13px] font-medium tracking-[0.15em] text-white/30 uppercase">
           <span className="cursor-pointer transition-colors hover:text-white/50">
             Privacy Policy
           </span>
@@ -783,7 +744,7 @@ export default function MeridialPage() {
             Terms of Use
           </span>
         </div>
-        <p className="mt-2 text-[9px] tracking-[0.12em] text-white/20 uppercase">
+        <p className="mt-2 text-[11px] tracking-[0.12em] text-white/20 uppercase">
           All Rights Reserved &middot; Invisible Marketplace
         </p>
       </footer>
