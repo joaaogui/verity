@@ -13,11 +13,19 @@ function AddressField({
   label,
   value,
   onChange,
+  filter,
 }: Readonly<{
   label: string;
   value: string;
   onChange: (v: string) => void;
+  filter?: "digits" | "letters";
 }>) {
+  const handleChange = (raw: string) => {
+    if (filter === "digits") onChange(raw.replace(/[^\d]/g, ""));
+    else if (filter === "letters") onChange(raw.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, ""));
+    else onChange(raw);
+  };
+
   return (
     <fieldset className="rounded-md border border-gray-200 px-3 pb-3 pt-1 transition-colors focus-within:border-gray-400">
       <legend
@@ -28,8 +36,9 @@ function AddressField({
       </legend>
       <input
         type="text"
+        inputMode={filter === "digits" ? "numeric" : undefined}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         className="w-full bg-transparent text-[14px] text-gray-900 outline-none"
       />
     </fieldset>
@@ -49,13 +58,16 @@ export function VerificationStep({
   onContinue: () => void;
   hadExtractionError?: boolean;
 }>) {
-  const isValid = address.streetAddress.trim().length > 0;
+  const isValid =
+    address.streetAddress.trim().length > 0 &&
+    address.city.trim().length > 0 &&
+    address.state.trim().length > 0 &&
+    address.zipCode.trim().length > 0 &&
+    address.country.trim().length > 0;
 
   return (
     <>
-      <StepHeading>
-        Confirm your details{address.fullName ? `, ${address.fullName}` : ""}
-      </StepHeading>
+      <StepHeading>Confirm your details</StepHeading>
       <StepDescription>
         We&apos;ve extracted your address information from the document. Please
         take a moment to review and confirm that these details are correct.
@@ -93,6 +105,7 @@ export function VerificationStep({
             label="State"
             value={address.state}
             onChange={(v) => onChange({ ...address, state: v })}
+            filter="letters"
           />
         </div>
         <div className="grid grid-cols-2 gap-5">
@@ -100,11 +113,13 @@ export function VerificationStep({
             label="Zip Code"
             value={address.zipCode}
             onChange={(v) => onChange({ ...address, zipCode: v })}
+            filter="digits"
           />
           <AddressField
             label="Country"
             value={address.country}
             onChange={(v) => onChange({ ...address, country: v })}
+            filter="letters"
           />
         </div>
       </div>

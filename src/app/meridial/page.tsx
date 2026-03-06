@@ -115,10 +115,10 @@ export default function MeridialPage() {
 
       <footer className="relative z-10 pb-8 text-center" style={{ fontFamily: FONT_MONO }}>
         <nav className="flex items-center justify-center gap-6 text-[12px] font-medium tracking-[0.15em] text-white/60 uppercase">
-          <a href="/privacy" className="transition-colors hover:text-white">
+          <a href="/meridial/privacy" className="transition-colors hover:text-white">
             Privacy Policy
           </a>
-          <a href="/terms" className="transition-colors hover:text-white">
+          <a href="/meridial/terms" className="transition-colors hover:text-white">
             Terms of Use
           </a>
         </nav>

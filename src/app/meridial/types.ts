@@ -11,11 +11,16 @@ export interface AddressData {
   country: string;
 }
 
+const safeString = z.preprocess(
+  (v) => (v == null || v === "null" ? "" : v),
+  z.string().default(""),
+);
+
 export const extractionResponseSchema = z.object({
-  fullName: z.string().default(""),
-  streetAddress: z.string().default(""),
-  city: z.string().default(""),
-  state: z.string().default(""),
-  zipCode: z.string().default(""),
-  country: z.string().default(""),
+  fullName: safeString,
+  streetAddress: safeString,
+  city: safeString,
+  state: safeString,
+  zipCode: safeString,
+  country: safeString,
 });
