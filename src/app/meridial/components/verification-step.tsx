@@ -30,11 +30,10 @@ function AddressField({
 
   return (
     <fieldset
-      className={`rounded-md border px-3 pb-3 pt-1 transition-colors focus-within:border-gray-400 ${
-        extracted
-          ? "border-emerald-200 bg-emerald-50/40"
-          : "border-gray-200"
-      }`}
+      className={`rounded-md border px-3 pb-3 pt-1 transition-colors focus-within:border-gray-400 ${extracted
+        ? "border-emerald-200 bg-emerald-50/40"
+        : "border-gray-200"
+        }`}
     >
       <legend
         className="flex items-center gap-1.5 px-1 text-[10px] font-medium tracking-[0.15em] uppercase"
@@ -99,7 +98,7 @@ export function VerificationStep({
         <div className="mt-4 rounded-md bg-amber-50 px-4 py-3">
           <p className="text-[14px] text-amber-700">
             <span className="mr-1">&#9888;</span> We couldn&apos;t extract
-            information automatically. Please fill in your details manually.
+            all the information automatically. Please fill in the missing details manually.
           </p>
         </div>
       ) : (
