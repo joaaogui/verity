@@ -6,6 +6,7 @@ import { FONT_MONO } from "../constants";
 import type { AddressData } from "../types";
 import { BackButton } from "./back-button";
 import { PrimaryButton } from "./primary-button";
+import { StepDescription } from "./step-description";
 import { StepHeading } from "./step-heading";
 
 function AddressField({
@@ -18,20 +19,20 @@ function AddressField({
   onChange: (v: string) => void;
 }>) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        className="text-[11px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+    <fieldset className="rounded-md border border-gray-200 px-3 pb-3 pt-1 transition-colors focus-within:border-gray-400">
+      <legend
+        className="px-1 text-[10px] font-medium tracking-[0.15em] text-gray-400 uppercase"
         style={{ fontFamily: FONT_MONO }}
       >
         {label}
-      </label>
+      </legend>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border-b border-gray-200 bg-transparent pb-2 text-[14px] text-gray-900 outline-none transition-colors focus:border-brand-900"
+        className="w-full bg-transparent text-[14px] text-gray-900 outline-none"
       />
-    </div>
+    </fieldset>
   );
 }
 
@@ -55,10 +56,10 @@ export function VerificationStep({
       <StepHeading>
         Confirm your details{address.fullName ? `, ${address.fullName}` : ""}
       </StepHeading>
-      <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+      <StepDescription>
         We&apos;ve extracted your address information from the document. Please
         take a moment to review and confirm that these details are correct.
-      </p>
+      </StepDescription>
 
       {hadExtractionError ? (
         <div className="mt-4 rounded-md bg-amber-50 px-4 py-3">
@@ -108,7 +109,7 @@ export function VerificationStep({
         </div>
       </div>
 
-      <div className="mt-8 flex items-center gap-3">
+      <div className="mt-auto flex items-center gap-3 pt-6">
         <BackButton onClick={onBack} />
         <PrimaryButton onClick={onContinue} disabled={!isValid} className="flex-1">
           CONTINUE

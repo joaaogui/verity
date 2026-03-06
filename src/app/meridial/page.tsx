@@ -13,13 +13,11 @@ import { UploadStep } from "./components/upload-step";
 import { VerificationStep } from "./components/verification-step";
 import { WelcomeStep } from "./components/welcome-step";
 import {
-  barlowCondensed,
-  dmSans,
   emptyAddress,
   FONT_BODY,
-  FONT_SPACE_MONO,
+  FONT_MONO,
   openSans,
-  spaceMono
+  spaceMono,
 } from "./constants";
 import type { AddressData, Step } from "./types";
 import { extractionResponseSchema } from "./types";
@@ -62,13 +60,13 @@ export default function MeridialPage() {
 
   return (
     <div
-      className={`relative flex min-h-screen flex-col ${dmSans.variable} ${barlowCondensed.variable} ${openSans.variable} ${spaceMono.variable}`}
+      className={`relative flex min-h-screen flex-col ${openSans.variable} ${spaceMono.variable}`}
       style={{ fontFamily: FONT_BODY }}
     >
       <FluidBackground />
 
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4">
-        <div className="w-full max-w-[540px]">
+        <div className="w-full max-w-[530px]">
           <div className="mb-4 px-1">
             <Logo />
           </div>
@@ -111,7 +109,7 @@ export default function MeridialPage() {
         </div>
       </main>
 
-      <footer className="relative z-10 pb-8 text-center" style={{ fontFamily: FONT_SPACE_MONO }}>
+      <footer className="relative z-10 pb-8 text-center" style={{ fontFamily: FONT_MONO }}>
         <nav className="flex items-center justify-center gap-6 text-[12px] font-medium tracking-[0.15em] text-white/60 uppercase">
           <a href="/privacy" className="transition-colors hover:text-white">
             Privacy Policy

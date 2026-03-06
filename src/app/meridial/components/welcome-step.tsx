@@ -3,16 +3,17 @@
 import { ArrowRight } from "lucide-react";
 
 import { PrimaryButton } from "./primary-button";
+import { StepDescription } from "./step-description";
 import { StepHeading } from "./step-heading";
 
 export function WelcomeStep({ onUpload }: Readonly<{ onUpload: () => void }>) {
   return (
     <>
-      <StepHeading>Welcome to Invisible Marketplace</StepHeading>
-      <p className="mt-5 text-[16px] font-medium leading-relaxed tracking-[-0.01em] text-gray-400">
+      <StepHeading className="text-[40px]">Welcome to Invisible Marketplace</StepHeading>
+      <StepDescription>
         Verify your address. We need your address to verify you&apos;re a real
         person, to collect your documents.
-      </p>
+      </StepDescription>
       <div className="flex-1" />
       <PrimaryButton onClick={onUpload}>
         UPLOAD DOCUMENT

@@ -9,6 +9,7 @@ import { useRef, useState } from "react";
 
 import { FILE_SELECT_DELAY_MS, FONT_MONO } from "../constants";
 import { BackButton } from "./back-button";
+import { StepDescription } from "./step-description";
 import { StepHeading } from "./step-heading";
 
 export function UploadStep({
@@ -31,10 +32,10 @@ export function UploadStep({
   return (
     <>
       <StepHeading>Upload Document</StepHeading>
-      <p className="mt-2 text-[13px] leading-relaxed text-gray-500">
+      <StepDescription>
         Upload your document. We&apos;ll analyze it using our document
         verification API.
-      </p>
+      </StepDescription>
 
       <span
         className="mt-6 text-[11px] font-medium tracking-[0.15em] text-gray-400 uppercase"
@@ -52,7 +53,7 @@ export function UploadStep({
       />
 
       {selectedFile ? (
-        <div className="mt-2 flex flex-1 flex-col items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 p-8">
+        <div className="mt-2 flex h-[165px] flex-col items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 p-8">
           <div className="relative">
             <FileText className="size-10 text-emerald-600" />
             <CheckCircle2 className="absolute -right-1 -top-1 size-4 rounded-full bg-white text-emerald-500" />
@@ -68,17 +69,17 @@ export function UploadStep({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="mt-2 flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-200 transition-colors hover:border-gray-300 hover:bg-gray-50"
+          className="mt-2 flex h-[165px] cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-200 bg-gray-50 transition-colors hover:border-gray-300 hover:bg-gray-100"
         >
           <Upload className="size-5 text-gray-400" />
-          <p className="text-[13px] text-gray-600">Click to upload</p>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[14px] text-gray-600">Click to upload</p>
+          <p className="text-[12px] text-gray-400">
             PDF, JPG or PNG up to 10MB
           </p>
         </button>
       )}
 
-      <div className="mt-6">
+      <div className="mt-auto pt-4">
         <BackButton onClick={onBack} />
       </div>
     </>
