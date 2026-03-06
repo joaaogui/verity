@@ -45,7 +45,7 @@ const GROUPS: SliderGroup[] = [
 ];
 
 export function loadParams(): FluidParams {
-  if (typeof globalThis.window === "undefined") return DEFAULT_PARAMS;
+  if (globalThis.window === undefined) return DEFAULT_PARAMS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return { ...DEFAULT_PARAMS, ...JSON.parse(raw) };

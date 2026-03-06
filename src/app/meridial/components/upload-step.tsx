@@ -23,13 +23,26 @@ export function UploadStep({
   error?: string | null;
 }>) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const acceptFile = (file: File) => {
+    setSelectedFile(file);
+    setTimeout(() => onFileSelect(file), FILE_SELECT_DELAY_MS);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setSelectedFile(file);
-    setTimeout(() => onFileSelect(file), FILE_SELECT_DELAY_MS);
+    acceptFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    acceptFile(file);
   };
 
   const handleRetry = () => {
@@ -61,7 +74,7 @@ export function UploadStep({
         onChange={handleChange}
       />
 
-      {error ? (
+      {error && (
         <button
           type="button"
           onClick={handleRetry}
@@ -73,7 +86,8 @@ export function UploadStep({
             Click to try again
           </span>
         </button>
-      ) : selectedFile ? (
+      )}
+      {!error && selectedFile && (
         <div className="mt-2 flex h-[165px] flex-col items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 p-8">
           <div className="relative">
             <FileText className="size-10 text-emerald-600" />
@@ -83,17 +97,27 @@ export function UploadStep({
             {selectedFile.name}
           </p>
           <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600">
-            <CheckCircle2 className="size-3" /> Verified
+            <CheckCircle2 className="size-3" /> File selected
           </span>
         </div>
-      ) : (
+      )}
+      {!error && !selectedFile && (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="mt-2 flex h-[165px] cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-gray-200 bg-gray-50 transition-colors hover:border-gray-300 hover:bg-gray-100"
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          className={`mt-2 flex h-[165px] cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed transition-colors ${
+            isDragging
+              ? "border-brand-700 bg-red-50"
+              : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100"
+          }`}
         >
           <Upload className="size-5 text-gray-400" />
-          <p className="text-[14px] text-gray-600">Click to upload</p>
+          <p className="text-[14px] text-gray-600">
+            {isDragging ? "Drop file here" : "Click or drag to upload"}
+          </p>
           <p className="text-[12px] text-gray-400">
             PDF, JPG or PNG up to 10MB
           </p>

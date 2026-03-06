@@ -51,18 +51,20 @@ export function AnalyzingStep() {
       </motion.div>
       <StepHeading>Analyzing document</StepHeading>
       <div className="flex-1" />
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={statusIndex}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.25 }}
-          className="mb-[24px] text-center text-[16px] text-gray-400"
-        >
-          {STATUS_MESSAGES[statusIndex]}
-        </motion.p>
-      </AnimatePresence>
+      <div role="status" aria-live="polite">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={statusIndex}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+            className="mb-[24px] text-center text-[16px] text-gray-400"
+          >
+            {STATUS_MESSAGES[statusIndex]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
     </>
   );
 }

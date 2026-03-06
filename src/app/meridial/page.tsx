@@ -61,6 +61,13 @@ export default function MeridialPage() {
       }
 
       const data = extractionResponseSchema.parse(body);
+      const hasEmptyRequiredFields =
+        !data.streetAddress.trim() ||
+        !data.city.trim() ||
+        !data.state.trim() ||
+        !data.zipCode.trim() ||
+        !data.country.trim();
+      setHadExtractionError(hasEmptyRequiredFields);
       setAddress(data);
       setStep(4);
     } catch {
@@ -108,7 +115,7 @@ export default function MeridialPage() {
                 <VerificationStep
                   address={address}
                   onChange={setAddress}
-                  onBack={() => setStep(1)}
+                  onBack={() => setStep(2)}
                   onContinue={() => setStep(5)}
                   hadExtractionError={hadExtractionError}
                 />

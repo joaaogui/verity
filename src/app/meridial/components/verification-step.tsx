@@ -21,8 +21,8 @@ function AddressField({
   filter?: "digits" | "letters";
 }>) {
   const handleChange = (raw: string) => {
-    if (filter === "digits") onChange(raw.replace(/[^\d]/g, ""));
-    else if (filter === "letters") onChange(raw.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, ""));
+    if (filter === "digits") onChange(raw.replaceAll(/[^\d]/g, ""));
+    else if (filter === "letters") onChange(raw.replaceAll(/[^a-zA-ZÀ-ÿ\s'-]/g, ""));
     else onChange(raw);
   };
 
@@ -65,8 +65,13 @@ export function VerificationStep({
     address.zipCode.trim().length > 0 &&
     address.country.trim().length > 0;
 
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isValid) onContinue();
+  };
+
   return (
-    <>
+    <form onSubmit={handleSubmit} className="flex flex-1 flex-col">
       <StepHeading>Confirm your details</StepHeading>
       <StepDescription>
         We&apos;ve extracted your address information from the document. Please
@@ -126,11 +131,11 @@ export function VerificationStep({
 
       <div className="mt-auto flex items-center gap-3 pt-6">
         <BackButton onClick={onBack} />
-        <PrimaryButton onClick={onContinue} disabled={!isValid} className="flex-1">
+        <PrimaryButton disabled={!isValid} className="flex-1">
           CONTINUE
           <ArrowRight className="size-4" />
         </PrimaryButton>
       </div>
-    </>
+    </form>
   );
 }

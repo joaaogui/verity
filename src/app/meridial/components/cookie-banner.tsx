@@ -17,12 +17,12 @@ export function CookieBanner({ onAgree }: Readonly<{ onAgree: () => void }>) {
       <p className="flex-1 text-sm font-medium leading-tight text-[#515151]" style={{ fontFamily: FONT_BANNER }}>
         We use cookies and collect personal information to verify your identity.
         By continuing, you consent to our{" "}
-        <a href="/privacy" className="font-bold text-[#5E1710]">
+        <a href="/meridial/privacy" className="font-bold text-[#5E1710]">
           Privacy Policy
         </a>{" "}
         and{" "}
-        <a href="/cookies" className="font-bold text-[#5E1710]">
-          Cookie Policy
+        <a href="/meridial/terms" className="font-bold text-[#5E1710]">
+          Terms of Use
         </a>.
       </p>
       <button
