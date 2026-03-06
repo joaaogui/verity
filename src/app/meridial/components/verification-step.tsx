@@ -63,14 +63,14 @@ export function VerificationStep({
 
       {hadExtractionError ? (
         <div className="mt-4 rounded-md bg-amber-50 px-4 py-3">
-          <p className="text-[13px] text-amber-700">
+          <p className="text-[14px] text-amber-700">
             <span className="mr-1">&#9888;</span> We couldn&apos;t extract
             information automatically. Please fill in your details manually.
           </p>
         </div>
       ) : (
         <div className="mt-4 rounded-md bg-emerald-50 px-4 py-3">
-          <p className="text-[13px] text-emerald-700">
+          <p className="text-[14px] text-emerald-700">
             <span className="mr-1">&#10003;</span> Address information
             successfully extracted from your document
           </p>

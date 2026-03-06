@@ -58,7 +58,7 @@ export function UploadStep({
             <FileText className="size-10 text-emerald-600" />
             <CheckCircle2 className="absolute -right-1 -top-1 size-4 rounded-full bg-white text-emerald-500" />
           </div>
-          <p className="mt-3 text-[13px] font-medium text-gray-900">
+          <p className="mt-3 text-[14px] font-medium text-gray-900">
             {selectedFile.name}
           </p>
           <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600">

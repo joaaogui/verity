@@ -58,7 +58,7 @@ export function AnalyzingStep() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.25 }}
-          className="text-center text-[13px] text-gray-400"
+          className="text-center text-[16px] text-gray-400"
         >
           {STATUS_MESSAGES[statusIndex]}
         </motion.p>

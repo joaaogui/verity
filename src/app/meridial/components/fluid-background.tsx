@@ -2,6 +2,34 @@
 
 import { useEffect, useRef } from "react";
 
+export interface FluidParams {
+  warpStrength: number;
+  waveFreq: number;
+  waveAmplitude: number;
+  compression: number;
+  foldsMix: number;
+  normalStrength: number;
+  lightHeight: number;
+  specularPower: number;
+  lightFalloff: number;
+  diffuseIntensity: number;
+  specularIntensity: number;
+}
+
+export const DEFAULT_PARAMS: FluidParams = {
+  warpStrength: 2,
+  waveFreq: 1.15,
+  waveAmplitude: 1.8,
+  compression: 0.1,
+  foldsMix: 0.75,
+  normalStrength: 7,
+  lightHeight: 0.85,
+  specularPower: 130,
+  lightFalloff: 13,
+  diffuseIntensity: 2.4,
+  specularIntensity: 0.8,
+};
+
 const VERT_SRC = `attribute vec2 a_position;
 void main(){gl_Position=vec4(a_position,0.0,1.0);}`;
 
@@ -10,6 +38,18 @@ const FRAG_SRC = `precision highp float;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec2 u_mouse;
+
+uniform float u_warp_strength;
+uniform float u_wave_freq;
+uniform float u_wave_amplitude;
+uniform float u_compression;
+uniform float u_folds_mix;
+uniform float u_normal_strength;
+uniform float u_light_height;
+uniform float u_specular_power;
+uniform float u_light_falloff;
+uniform float u_diffuse_intensity;
+uniform float u_specular_intensity;
 
 #define PI 3.14159265359
 
@@ -50,19 +90,24 @@ float fbm(vec2 p){
 float silk(vec2 uv, float t){
 
     vec2 warp = vec2(
-        fbm(uv*0.8 + t*0.035),
-        fbm(uv*0.8 - t*0.025)
+        fbm(uv*0.6 + t*0.035),
+        fbm(uv*0.6 - t*0.025 + 3.7)
     );
 
-    uv += warp * 0.35;
+    uv += warp * u_warp_strength;
 
+    float f = u_wave_freq;
     float wave =
-        sin(uv.x * 1.8 + t*0.2) +
-        sin(uv.x * 0.9 + uv.y*0.4 + t*0.13);
+        sin(uv.x * 3.5*f + uv.y*1.8*f + t*0.2) +
+        sin(uv.x * 1.8*f - uv.y*1.2*f + t*0.13) +
+        sin(uv.y * 2.4*f + uv.x*0.9*f + t*0.17) * 0.5;
 
-    float folds = fbm(vec2(uv.x*0.5 + wave, uv.y*0.2));
+    float ew = exp(2.0 * wave * u_compression);
+    wave = ((ew - 1.0) / (ew + 1.0)) * u_wave_amplitude;
 
-    return wave*0.6 + folds*0.4;
+    float folds = fbm(vec2(uv.x*0.4 + wave*0.3, uv.y*0.2));
+
+    return wave + folds * u_folds_mix;
 }
 
 void main(){
@@ -80,7 +125,7 @@ void main(){
     float hx = silk((st + vec2(eps,0.0))*1.3, t);
     float hy = silk((st + vec2(0.0,eps))*1.3, t);
 
-    vec3 N = normalize(vec3((h-hx)*8.0, (h-hy)*8.0, eps));
+    vec3 N = normalize(vec3((h-hx)*u_normal_strength, (h-hy)*u_normal_strength, eps));
 
     vec2 mouse = u_mouse * vec2(aspect,1.0);
     vec2 p = uv * vec2(aspect,1.0);
@@ -88,18 +133,18 @@ void main(){
     vec2 delta = mouse - p;
     float dist = length(delta);
 
-    vec3 L = normalize(vec3(delta,0.4));
+    vec3 L = normalize(vec3(delta,u_light_height));
     vec3 V = vec3(0.0,0.0,1.0);
 
     float diff = max(dot(N,L),0.0);
 
     vec3 H = normalize(L + V);
 
-    float spec = pow(max(dot(N,H),0.0),80.0);
+    float spec = pow(max(dot(N,H),0.0),u_specular_power);
 
     float anisotropic = spec * smoothstep(0.0,0.7,abs(N.y));
 
-    float falloff = 1.0 / (1.0 + dist*dist*8.0);
+    float falloff = 1.0 / (1.0 + dist*dist*u_light_falloff);
 
     vec3 shadow = vec3(0.15,0.04,0.04);
     vec3 mid = vec3(0.32,0.09,0.08);
@@ -114,9 +159,9 @@ void main(){
 
     vec3 lit = mix(crimson,glow,diff);
 
-    col += lit * diff * falloff * 2.4;
+    col += lit * diff * falloff * u_diffuse_intensity;
 
-    col += glow * anisotropic * falloff * 0.8;
+    col += glow * anisotropic * falloff * u_specular_intensity;
 
     vec2 vc = uv - 0.5;
     col *= 1.0 - dot(vc,vc)*0.35;
@@ -139,8 +184,14 @@ function compileShader(gl: WebGLRenderingContext, type: number, src: string) {
   return s;
 }
 
-export function FluidBackground() {
+interface FluidBackgroundProps {
+  readonly params?: FluidParams;
+}
+
+export function FluidBackground({ params = DEFAULT_PARAMS }: FluidBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -169,6 +220,17 @@ export function FluidBackground() {
     const uRes = gl.getUniformLocation(prog, "u_resolution");
     const uTime = gl.getUniformLocation(prog, "u_time");
     const uMouse = gl.getUniformLocation(prog, "u_mouse");
+    const uWarpStrength = gl.getUniformLocation(prog, "u_warp_strength");
+    const uWaveFreq = gl.getUniformLocation(prog, "u_wave_freq");
+    const uWaveAmplitude = gl.getUniformLocation(prog, "u_wave_amplitude");
+    const uCompression = gl.getUniformLocation(prog, "u_compression");
+    const uFoldsMix = gl.getUniformLocation(prog, "u_folds_mix");
+    const uNormalStrength = gl.getUniformLocation(prog, "u_normal_strength");
+    const uLightHeight = gl.getUniformLocation(prog, "u_light_height");
+    const uSpecularPower = gl.getUniformLocation(prog, "u_specular_power");
+    const uLightFalloff = gl.getUniformLocation(prog, "u_light_falloff");
+    const uDiffuseIntensity = gl.getUniformLocation(prog, "u_diffuse_intensity");
+    const uSpecularIntensity = gl.getUniformLocation(prog, "u_specular_intensity");
 
     let mouseX = 0.5, mouseY = 0.5;
     let smoothX = 0.5, smoothY = 0.5;
@@ -197,9 +259,22 @@ export function FluidBackground() {
       smoothX += (mouseX - smoothX) * 0.07;
       smoothY += (mouseY - smoothY) * 0.07;
 
+      const p = paramsRef.current;
+
       gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.uniform1f(uTime, (performance.now() - t0) / 1000);
       gl.uniform2f(uMouse, smoothX, smoothY);
+      gl.uniform1f(uWarpStrength, p.warpStrength);
+      gl.uniform1f(uWaveFreq, p.waveFreq);
+      gl.uniform1f(uWaveAmplitude, p.waveAmplitude);
+      gl.uniform1f(uCompression, p.compression);
+      gl.uniform1f(uFoldsMix, p.foldsMix);
+      gl.uniform1f(uNormalStrength, p.normalStrength);
+      gl.uniform1f(uLightHeight, p.lightHeight);
+      gl.uniform1f(uSpecularPower, p.specularPower);
+      gl.uniform1f(uLightFalloff, p.lightFalloff);
+      gl.uniform1f(uDiffuseIntensity, p.diffuseIntensity);
+      gl.uniform1f(uSpecularIntensity, p.specularIntensity);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       raf = requestAnimationFrame(draw);
     };

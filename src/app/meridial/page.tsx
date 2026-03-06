@@ -7,7 +7,9 @@ import { useCallback, useState } from "react";
 import { AnalyzingStep } from "./components/analyzing-step";
 import { CompleteStep } from "./components/complete-step";
 import { CookieBanner } from "./components/cookie-banner";
+import type { FluidParams } from "./components/fluid-background";
 import { Logo } from "./components/logo";
+import { loadParams, ShaderControls } from "./components/shader-controls";
 import { StepCard } from "./components/step-card";
 import { UploadStep } from "./components/upload-step";
 import { VerificationStep } from "./components/verification-step";
@@ -32,6 +34,7 @@ export default function MeridialPage() {
   const [showConsent, setShowConsent] = useState(true);
   const [address, setAddress] = useState<AddressData>(emptyAddress);
   const [hadExtractionError, setHadExtractionError] = useState(false);
+  const [shaderParams, setShaderParams] = useState<FluidParams>(loadParams);
 
   const handleFileSelect = useCallback(async (file: File) => {
     setStep(3);
@@ -63,7 +66,8 @@ export default function MeridialPage() {
       className={`relative flex min-h-screen flex-col ${openSans.variable} ${spaceMono.variable}`}
       style={{ fontFamily: FONT_BODY }}
     >
-      <FluidBackground />
+      <FluidBackground params={shaderParams} />
+      <ShaderControls params={shaderParams} onChange={setShaderParams} />
 
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-4">
         <div className="w-full max-w-[530px]">
