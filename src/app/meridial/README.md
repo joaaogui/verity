@@ -1,5 +1,7 @@
 # Meridial — Address Verification Flow
 
+![Meridial welcome screen](screenshot.png)
+
 A 5-step document verification wizard that extracts address data from uploaded documents using LLM-powered OCR.
 
 ## Flow
