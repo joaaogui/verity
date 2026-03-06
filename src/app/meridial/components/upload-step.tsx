@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   CheckCircle2,
   FileText,
   Upload,
@@ -15,9 +16,11 @@ import { StepHeading } from "./step-heading";
 export function UploadStep({
   onBack,
   onFileSelect,
+  error,
 }: Readonly<{
   onBack: () => void;
   onFileSelect: (file: File) => void;
+  error?: string | null;
 }>) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +30,12 @@ export function UploadStep({
     if (!file) return;
     setSelectedFile(file);
     setTimeout(() => onFileSelect(file), FILE_SELECT_DELAY_MS);
+  };
+
+  const handleRetry = () => {
+    setSelectedFile(null);
+    if (inputRef.current) inputRef.current.value = "";
+    inputRef.current?.click();
   };
 
   return (
@@ -52,7 +61,19 @@ export function UploadStep({
         onChange={handleChange}
       />
 
-      {selectedFile ? (
+      {error ? (
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-2 flex h-[165px] cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 p-8 transition-colors hover:border-red-300 hover:bg-red-100"
+        >
+          <AlertCircle className="size-10 text-red-500" />
+          <p className="mt-1 text-[14px] font-medium text-red-700">{error}</p>
+          <span className="text-[12px] font-medium text-red-500">
+            Click to try again
+          </span>
+        </button>
+      ) : selectedFile ? (
         <div className="mt-2 flex h-[165px] flex-col items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 p-8">
           <div className="relative">
             <FileText className="size-10 text-emerald-600" />

@@ -34,10 +34,12 @@ export default function MeridialPage() {
   const [showConsent, setShowConsent] = useState(true);
   const [address, setAddress] = useState<AddressData>(emptyAddress);
   const [hadExtractionError, setHadExtractionError] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [shaderParams, setShaderParams] = useState<FluidParams>(loadParams);
 
   const handleFileSelect = useCallback(async (file: File) => {
     setStep(3);
+    setUploadError(null);
     setHadExtractionError(false);
 
     try {
@@ -49,15 +51,22 @@ export default function MeridialPage() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Extraction failed");
+      const body = await res.json();
 
-      const data = extractionResponseSchema.parse(await res.json());
+      if (!res.ok) {
+        setUploadError(body?.error ?? "Something went wrong. Please try again.");
+        setAddress(emptyAddress);
+        setStep(2);
+        return;
+      }
+
+      const data = extractionResponseSchema.parse(body);
       setAddress(data);
       setStep(4);
     } catch {
-      setHadExtractionError(true);
+      setUploadError("Something went wrong. Please try again.");
       setAddress(emptyAddress);
-      setStep(4);
+      setStep(2);
     }
   }, []);
 
@@ -83,7 +92,8 @@ export default function MeridialPage() {
             {step === 2 && (
               <StepCard step={2}>
                 <UploadStep
-                  onBack={() => setStep(1)}
+                  onBack={() => { setUploadError(null); setStep(1); }}
+                  error={uploadError}
                   onFileSelect={handleFileSelect}
                 />
               </StepCard>
