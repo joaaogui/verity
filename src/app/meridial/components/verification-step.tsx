@@ -14,11 +14,13 @@ function AddressField({
   value,
   onChange,
   filter,
+  extracted,
 }: Readonly<{
   label: string;
   value: string;
   onChange: (v: string) => void;
   filter?: "digits" | "letters";
+  extracted?: boolean;
 }>) {
   const handleChange = (raw: string) => {
     if (filter === "digits") onChange(raw.replaceAll(/[^\d]/g, ""));
@@ -27,12 +29,25 @@ function AddressField({
   };
 
   return (
-    <fieldset className="rounded-md border border-gray-200 px-3 pb-3 pt-1 transition-colors focus-within:border-gray-400">
+    <fieldset
+      className={`rounded-md border px-3 pb-3 pt-1 transition-colors focus-within:border-gray-400 ${
+        extracted
+          ? "border-emerald-200 bg-emerald-50/40"
+          : "border-gray-200"
+      }`}
+    >
       <legend
-        className="px-1 text-[10px] font-medium tracking-[0.15em] text-gray-400 uppercase"
+        className="flex items-center gap-1.5 px-1 text-[10px] font-medium tracking-[0.15em] uppercase"
         style={{ fontFamily: FONT_MONO }}
       >
-        {label}
+        <span className={extracted ? "text-emerald-500" : "text-gray-400"}>
+          {label}
+        </span>
+        {extracted && (
+          <span className="rounded-full bg-emerald-100 px-1.5 py-px text-[8px] tracking-widest text-emerald-600">
+            AUTO-FILLED
+          </span>
+        )}
       </legend>
       <input
         type="text"
@@ -51,12 +66,14 @@ export function VerificationStep({
   onBack,
   onContinue,
   hadExtractionError = false,
+  extractedFields = new Set(),
 }: Readonly<{
   address: AddressData;
   onChange: (a: AddressData) => void;
   onBack: () => void;
   onContinue: () => void;
   hadExtractionError?: boolean;
+  extractedFields?: ReadonlySet<keyof AddressData>;
 }>) {
   const isValid =
     address.streetAddress.trim().length > 0 &&
@@ -99,18 +116,21 @@ export function VerificationStep({
           label="Street Address"
           value={address.streetAddress}
           onChange={(v) => onChange({ ...address, streetAddress: v })}
+          extracted={extractedFields.has("streetAddress")}
         />
         <div className="grid grid-cols-2 gap-5">
           <AddressField
             label="City"
             value={address.city}
             onChange={(v) => onChange({ ...address, city: v })}
+            extracted={extractedFields.has("city")}
           />
           <AddressField
             label="State"
             value={address.state}
             onChange={(v) => onChange({ ...address, state: v })}
             filter="letters"
+            extracted={extractedFields.has("state")}
           />
         </div>
         <div className="grid grid-cols-2 gap-5">
@@ -119,12 +139,14 @@ export function VerificationStep({
             value={address.zipCode}
             onChange={(v) => onChange({ ...address, zipCode: v })}
             filter="digits"
+            extracted={extractedFields.has("zipCode")}
           />
           <AddressField
             label="Country"
             value={address.country}
             onChange={(v) => onChange({ ...address, country: v })}
             filter="letters"
+            extracted={extractedFields.has("country")}
           />
         </div>
       </div>

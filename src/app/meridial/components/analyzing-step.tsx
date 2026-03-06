@@ -20,7 +20,7 @@ export function AnalyzingStep() {
   useEffect(() => {
     const interval = setInterval(() => {
       setStatusIndex((i) => (i + 1) % STATUS_MESSAGES.length);
-    }, 3500);
+    }, 1800);
     return () => clearInterval(interval);
   }, []);
 

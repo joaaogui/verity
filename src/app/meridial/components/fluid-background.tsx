@@ -87,8 +87,10 @@ float fbm(vec2 p){
     return v;
 }
 
+// Silk height field: warped waves + wrinkle detail
 float silk(vec2 uv, float t){
 
+    // Warp UVs with noise so the waves aren't uniform
     vec2 warp = vec2(
         fbm(uv*0.6 + t*0.035),
         fbm(uv*0.6 - t*0.025 + 3.7)
@@ -102,6 +104,7 @@ float silk(vec2 uv, float t){
         sin(uv.x * 1.8*f - uv.y*1.2*f + t*0.13) +
         sin(uv.y * 2.4*f + uv.x*0.9*f + t*0.17) * 0.5;
 
+    // Soft-clip peaks (tanh approximation)
     float ew = exp(2.0 * wave * u_compression);
     wave = ((ew - 1.0) / (ew + 1.0)) * u_wave_amplitude;
 
@@ -120,6 +123,7 @@ void main(){
 
     float h = silk(st*1.3, t);
 
+    // Estimate surface normal from neighboring height samples
     float eps = 0.002;
 
     float hx = silk((st + vec2(eps,0.0))*1.3, t);
@@ -142,6 +146,7 @@ void main(){
 
     float spec = pow(max(dot(N,H),0.0),u_specular_power);
 
+    // Anisotropic highlight along vertical normals (silk sheen)
     float anisotropic = spec * smoothstep(0.0,0.7,abs(N.y));
 
     float falloff = 1.0 / (1.0 + dist*dist*u_light_falloff);

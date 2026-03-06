@@ -34,6 +34,7 @@ export default function MeridialPage() {
   const [showConsent, setShowConsent] = useState(true);
   const [address, setAddress] = useState<AddressData>(emptyAddress);
   const [hadExtractionError, setHadExtractionError] = useState(false);
+  const [extractedFields, setExtractedFields] = useState<Set<keyof AddressData>>(new Set());
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [shaderParams, setShaderParams] = useState<FluidParams>(loadParams);
 
@@ -68,6 +69,11 @@ export default function MeridialPage() {
         !data.zipCode.trim() ||
         !data.country.trim();
       setHadExtractionError(hasEmptyRequiredFields);
+      const filled = new Set<keyof AddressData>();
+      for (const key of Object.keys(data) as (keyof AddressData)[]) {
+        if (data[key].trim()) filled.add(key);
+      }
+      setExtractedFields(filled);
       setAddress(data);
       setStep(4);
     } catch {
@@ -118,6 +124,7 @@ export default function MeridialPage() {
                   onBack={() => setStep(2)}
                   onContinue={() => setStep(5)}
                   hadExtractionError={hadExtractionError}
+                  extractedFields={extractedFields}
                 />
               </StepCard>
             )}
