@@ -6,7 +6,7 @@ AI-powered document validator. Upload a PDF or image, describe what you expect, 
 
 **Design document:** [verity.joaog.space/docs](https://verity.joaog.space/docs)
 
-**Test suite:** [verity.joaog.space/tests](https://verity.joaog.space/tests)
+**Test suite:** `/tests` (Basic Auth via `TESTS_BASIC_AUTH`; 404 in production when unset)
 
 ---
 
@@ -45,13 +45,15 @@ cd verity
 npm install
 ```
 
-Create `.env.local`:
+Create `.env.local` (see `.env.example`):
 
 ```
 GEMINI_API_KEY=your-gemini-api-key
+TESTS_BASIC_AUTH=username:password
 ```
 
 Get a free API key at [aistudio.google.com](https://aistudio.google.com/apikey).
+Set `TESTS_BASIC_AUTH` in production so `/tests` is not publicly callable.
 
 ```bash
 npm run dev

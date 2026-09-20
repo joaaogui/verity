@@ -3,6 +3,7 @@ import { ACCEPTED_FILE_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from "@/li
 import { getLLMProvider } from "@/lib/llm/provider";
 import { resizeImageForLLM } from "@/lib/document/image-processor";
 import { processPdf } from "@/lib/document/pdf-processor";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { DocumentPart } from "@/lib/llm/types";
 
 const ADDRESS_EXTRACTION_PROMPT = `address verification document - Extract the following address fields from this document:
@@ -16,6 +17,9 @@ const ADDRESS_EXTRACTION_PROMPT = `address verification document - Extract the f
 Return ALL fields even if some are empty strings. Be thorough and extract the most complete address information visible.`;
 
 export async function POST(request: NextRequest) {
+  const rateLimited = checkRateLimit(request, 5);
+  if (rateLimited) return rateLimited;
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

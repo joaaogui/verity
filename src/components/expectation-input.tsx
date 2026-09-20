@@ -183,21 +183,30 @@ export function ExpectationInput({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Preset document expectations">
         {visible.map((suggestion) => (
           <Badge
             key={suggestion}
+            asChild
             variant={value === suggestion ? "default" : "outline"}
             className="select-none"
-            onClick={() => !disabled && onChange(suggestion)}
           >
-            {suggestion}
+            <button
+              type="button"
+              disabled={disabled}
+              aria-pressed={value === suggestion}
+              onClick={() => onChange(suggestion)}
+              className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {suggestion}
+            </button>
           </Badge>
         ))}
         {QUICK_PICKS.length > VISIBLE_COUNT && (
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             {expanded ? (

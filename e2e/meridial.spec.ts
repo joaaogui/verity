@@ -33,6 +33,8 @@ test.describe("Meridial main flow", () => {
 
     await expect(page.getByText("Upload Document")).toBeVisible();
     await expect(page.getByText("STEP 2/5")).toBeVisible();
+    await expect(page.getByText(/sent to this server and then to Google Gemini/i)).toBeVisible();
+    await expect(page.getByText(/PDFs longer than 3 pages/i)).toBeVisible();
   });
 
   test("step 2 → step 1: back from upload returns to welcome", async ({ page }) => {
@@ -117,7 +119,7 @@ test.describe("Meridial main flow", () => {
     await fileInput.setInputFiles(FIXTURE);
 
     await expect(page.getByText("Confirm your details")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("fill in your details manually")).toBeVisible();
+    await expect(page.getByText(/fill in the missing details manually/i)).toBeVisible();
   });
 
   test("shows upload error when API fails", async ({ page }) => {

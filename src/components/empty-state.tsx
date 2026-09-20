@@ -16,7 +16,7 @@ const steps = [
   {
     icon: Zap,
     title: "Validate",
-    description: "Get instant classification and verdict.",
+    description: "Get an assistive AI estimate to review.",
   },
 ];
 

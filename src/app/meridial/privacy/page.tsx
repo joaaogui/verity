@@ -14,81 +14,71 @@ export default function PrivacyPolicyPage() {
 
       <div className="space-y-6 text-[15px] leading-relaxed text-gray-600">
         <p>
-          <strong className="text-gray-900">Last updated:</strong> March 5, 2026
+          <strong className="text-gray-900">Last updated:</strong> September 19, 2026
+        </p>
+        <p>
+          Meridial is a <strong className="text-gray-900">demo product experience</strong>{" "}
+          built on Verity. It is not a production identity or compliance service.
         </p>
 
         <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          1. Information We Collect
+          1. What we process
         </h2>
         <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-          minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-          ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
-          voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+          When you upload a document, the file and the extraction request are sent to
+          this app&apos;s server and then to Google Gemini for address-field extraction.
+          We ask you not to upload highly sensitive documents you are not prepared to
+          share with a third-party AI provider.
         </p>
 
         <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          2. How We Use Your Information
+          2. Retention
         </h2>
         <p>
-          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
-          officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde
-          omnis iste natus error sit voluptatem accusantium doloremque
-          laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore
-          veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+          This demo does not operate a durable document store. Uploaded files are
+          handled in memory for the request and are not saved to an application
+          database by us. Provider-side processing and any provider logs follow{" "}
+          <a
+            href="https://policies.google.com/privacy"
+            className="underline hover:text-gray-900"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Google&apos;s privacy policy
+          </a>
+          .
         </p>
 
         <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          3. Data Storage and Security
+          3. Cookies and local storage
         </h2>
         <p>
-          Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut
-          fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem
-          sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor
-          sit amet, consectetur, adipisci velit.
+          A simple cookie-consent preference may be stored in your browser so the
+          banner is not shown repeatedly. No advertising trackers are used by this
+          demo.
         </p>
 
         <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          4. Cookies and Tracking
+          4. Your choices
         </h2>
         <p>
-          Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis
-          suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur. Quis
-          autem vel eum iure reprehenderit qui in ea voluptate velit esse quam
-          nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo
-          voluptas nulla pariatur.
+          Do not upload documents you do not want processed by Gemini. Clear site
+          data in your browser to remove local preferences. Contact the site operator
+          if you believe a demo deployment is retaining data beyond this description.
         </p>
 
         <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          5. Third-Party Services
+          5. Contact
         </h2>
         <p>
-          At vero eos et accusamus et iusto odio dignissimos ducimus qui
-          blanditiis praesentium voluptatum deleniti atque corrupti quos dolores
-          et quas molestias excepturi sint occaecati cupiditate non provident,
-          similique sunt in culpa qui officia deserunt mollitia animi, id est
-          laborum et dolorum fuga.
-        </p>
-
-        <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          6. Your Rights
-        </h2>
-        <p>
-          Et harum quidem rerum facilis est et expedita distinctio. Nam libero
-          tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo
-          minus id quod maxime placeat facere possimus, omnis voluptas assumenda
-          est, omnis dolor repellendus.
-        </p>
-
-        <h2 className="pt-2 text-xl font-semibold text-gray-900">
-          7. Contact Us
-        </h2>
-        <p>
-          Temporibus autem quibusdam et aut officiis debitis aut rerum
-          necessitatibus saepe eveniet ut et voluptates repudiandae sint et
-          molestiae non recusandae. If you have questions about this policy,
-          please contact us at privacy@meridial.com.
+          For questions about this demo, contact the site operator through{" "}
+          <a
+            href="https://joaog.space"
+            className="underline hover:text-gray-900"
+          >
+            joaog.space
+          </a>
+          .
         </p>
       </div>
     </div>

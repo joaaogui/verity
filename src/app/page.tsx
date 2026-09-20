@@ -120,6 +120,14 @@ export default function Home() {
             disabled={isPending}
           />
 
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Analyzed by Google Gemini. This app does not keep your files after the
+            request; Gemini processes them under Google&apos;s terms. PDFs longer than
+            3 pages are truncated to the first 3. Session history stays in your
+            browser only. Verdicts are assistive AI estimates—not a sole basis for
+            consequential decisions.
+          </p>
+
           <div>
             <Button
               size="lg"

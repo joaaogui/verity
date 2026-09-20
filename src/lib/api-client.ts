@@ -19,6 +19,11 @@ export type StreamEvent =
   | { type: "complete"; data: FieldsResult }
   | { type: "error"; data: { error: string; code: string } };
 
+export type ApiError = {
+  error: string;
+  code?: string;
+};
+
 function parseSseBlock(block: string): { eventType: string; eventData: string } | null {
   let eventType = "";
   let eventData = "";
@@ -74,6 +79,33 @@ async function* readSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<
       if (event) yield event;
     }
   }
+
+  if (buffer.trim()) {
+    const event = parseBlockToEvent(buffer);
+    if (event) yield event;
+  }
+}
+
+async function throwForNonOkResponse(response: Response): Promise<never> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    let body: ApiError | null = null;
+    try {
+      body = (await response.json()) as ApiError;
+    } catch {
+      body = null;
+    }
+    if (typeof body?.error === "string" && body.error.trim()) {
+      throw new Error(body.error);
+    }
+  }
+
+  if (response.status === 429) {
+    throw new Error("Too many requests. Please try again later.");
+  }
+
+  throw new Error(`Request failed (${response.status})`);
 }
 
 export async function* validateDocumentStream(
@@ -89,13 +121,18 @@ export async function* validateDocumentStream(
     body: formData,
   });
 
+  if (!response.ok) {
+    await throwForNonOkResponse(response);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/event-stream")) {
+    throw new Error("Unexpected response from server.");
+  }
+
   if (!response.body) {
     throw new Error("No response body");
   }
 
   yield* readSseStream(response.body);
 }
-
-export type ApiError = {
-  error: string;
-};

@@ -55,9 +55,16 @@ export function UploadStep({
     <>
       <StepHeading>Upload Document</StepHeading>
       <StepDescription>
-        Upload your document. We&apos;ll analyze it using our document
-        verification API.
+        Upload your document. We&apos;ll extract address fields with Google
+        Gemini for this demo only — not a regulated verification service.
       </StepDescription>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-gray-500">
+        Your file is sent to this server and then to Google Gemini. We do not
+        store uploads in an app database; processing follows Google&apos;s terms.
+        PDFs longer than 3 pages are truncated to the first 3 before analysis.
+        Review extracted fields yourself before relying on them.
+      </p>
 
       <span
         className="mt-6 text-[11px] font-medium tracking-[0.15em] text-gray-400 uppercase"

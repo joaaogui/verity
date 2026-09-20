@@ -22,20 +22,20 @@ export function ResultCard({ verdict, fields, isExtractingFields }: Readonly<Res
 
   let Icon = CheckCircle;
   let iconColor = "text-success";
-  let statusText = "Match";
+  let statusText = "Likely match";
   let statusClass = "bg-success/10 text-success border-success/30";
   let whyBorder = "border-l-success";
 
   if (!isMatch) {
     Icon = XCircle;
     iconColor = "text-destructive";
-    statusText = "No Match";
+    statusText = "Likely no match";
     statusClass = "bg-destructive/10 text-destructive border-destructive/30";
     whyBorder = "border-l-destructive";
   } else if (isLowConfidence) {
     Icon = AlertTriangle;
     iconColor = "text-warning";
-    statusText = "Uncertain Match";
+    statusText = "Uncertain";
     statusClass = "bg-warning/10 text-warning border-warning/30";
     whyBorder = "border-l-warning";
   }
@@ -79,6 +79,11 @@ export function ResultCard({ verdict, fields, isExtractingFields }: Readonly<Res
       </CardHeader>
 
       <CardContent className="space-y-5">
+        <p className="text-xs text-muted-foreground">
+          AI estimate from Gemini — assistive only. Do not use as the sole basis for
+          consequential decisions; review the document yourself.
+        </p>
+
         <div className={`border-l-2 ${whyBorder} pl-3`}>
           <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/50">
             Why

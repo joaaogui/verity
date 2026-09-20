@@ -35,7 +35,7 @@ export default function TestSuitePage() {
       );
 
       const tc = TEST_CASES[i];
-      const result = await runTestCase(tc.id, tc.file, tc.expectation);
+      const result = await runTestCase(tc.id);
 
       const passed = !result.error && result.matchesExpectation === tc.expectedMatch;
       let status: TestStatus = "failed";
